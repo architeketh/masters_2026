@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.09.10";
+const APP_VERSION = "2026.04.09.11";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -784,9 +784,18 @@ function updateHeader(config, entries, leaderboard) {
   elements.scoresLastUpdated.textContent = lastUpdatedText;
   elements.boardVersion.textContent = `Build ${APP_VERSION}`;
 
-  const fallbackLeader = leaderboard.players
+  const sortedLeaders = leaderboard.players
     .slice()
-    .sort((a, b) => (parseScoreToPar(a.toPar) ?? 999) - (parseScoreToPar(b.toPar) ?? 999))
+    .sort((a, b) => {
+      const aScore = parseScoreToPar(a.toPar) ?? 999;
+      const bScore = parseScoreToPar(b.toPar) ?? 999;
+      if (aScore !== bScore) return aScore - bScore;
+      return (parsePosition(a.position) ?? 999) - (parsePosition(b.position) ?? 999);
+    });
+
+  const bestLeaderScore = sortedLeaders.length ? (parseScoreToPar(sortedLeaders[0].toPar) ?? 999) : 999;
+  const fallbackLeader = sortedLeaders
+    .filter((player) => (parseScoreToPar(player.toPar) ?? 999) === bestLeaderScore)
     .slice(0, 3)
     .map((player) => `${player.name} (${formatScore(parseScoreToPar(player.toPar))})`)
     .join(" / ");
