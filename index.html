@@ -88,7 +88,11 @@
       </div>
       <button id="close-admin" class="ghost-button" type="button">Close</button>
     </div>
-    <p class="muted admin-copy">Paste either the full JSON object or copied leaderboard rows. The importer will try to match your 21 drafted golfers and save the update in this browser.</p>
+    <p class="muted admin-copy">Paste JSON, pasted leaderboard rows, or a tee-sheet CSV with <code>PLAYER</code> and <code>TEE TIME</code>. The importer will match your 21 drafted golfers and save the update in this browser.</p>
+    <label class="file-picker" for="csv-file-input">
+      <span>Import CSV file</span>
+      <input id="csv-file-input" type="file" accept=".csv,text/csv">
+    </label>
     <textarea id="leaderboard-input" spellcheck="false" aria-label="Leaderboard JSON"></textarea>
     <div class="admin-actions">
       <button id="apply-data" type="button">Apply update</button>

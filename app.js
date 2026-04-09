@@ -20,6 +20,7 @@ const elements = {
   leaderboard: document.getElementById("leaderboard"),
   adminPanel: document.getElementById("admin-panel"),
   leaderboardInput: document.getElementById("leaderboard-input"),
+  csvFileInput: document.getElementById("csv-file-input"),
   adminStatus: document.getElementById("admin-status"),
   toggleAdmin: document.getElementById("toggle-admin"),
   closeAdmin: document.getElementById("close-admin"),
@@ -72,7 +73,16 @@ function parseScoreToPar(value) {
 }
 
 function normalizeName(value) {
-  return String(value || "").toLowerCase().replace(/\./g, "").replace(/\s+/g, " ").trim();
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\([^)]+\)/g, "")
+    .replace(/\./g, "")
+    .replace(/\bcameron young\b/g, "cam young")
+    .replace(/\bj j spaun\b/g, "jj spaun")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function formatScore(value) {
@@ -136,6 +146,103 @@ function buildLookup(players) {
   return lookup;
 }
 
+function parseCsvRow(line) {
+  const values = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+
+    if (character === '"') {
+      if (inQuotes && line[index + 1] === '"') {
+        current += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (character === "," && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+    } else {
+      current += character;
+    }
+  }
+
+  values.push(current.trim());
+  return values.map((value) => value.replace(/^"|"$/g, "").trim());
+}
+
+function parseTeeSheetCsv(rawText, currentLeaderboard, picks) {
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!lines.length) {
+    throw new Error("CSV file is empty.");
+  }
+
+  const header = parseCsvRow(lines[0]).map((cell) => cell.toUpperCase());
+  const playerColumnIndex = header.findIndex((cell) => cell === "PLAYER");
+  const teeTimeColumnIndex = header.findIndex((cell) => cell === "TEE TIME" || cell === "TEE_TIME" || cell === "TEETIME");
+
+  if (playerColumnIndex === -1 || teeTimeColumnIndex === -1) {
+    throw new Error("CSV must include PLAYER and TEE TIME columns.");
+  }
+
+  const draftedPlayers = collectDraftedPlayers(picks);
+  const currentLookup = buildLookup(currentLeaderboard.players);
+  const draftedByName = new Map(
+    draftedPlayers.map((name) => [normalizeName(name), name])
+  );
+  const teeTimes = new Map();
+
+  lines.slice(1).forEach((line) => {
+    const row = parseCsvRow(line);
+    const rawPlayerName = row[playerColumnIndex];
+    const teeTime = row[teeTimeColumnIndex];
+    if (!rawPlayerName || !teeTime) return;
+
+    const normalized = normalizeName(rawPlayerName);
+    const draftedName = draftedByName.get(normalized);
+    if (!draftedName) return;
+    teeTimes.set(normalized, teeTime);
+  });
+
+  if (!teeTimes.size) {
+    throw new Error("No drafted golfers were recognized in the CSV.");
+  }
+
+  const mergedPlayers = draftedPlayers.map((name) => {
+    const normalized = normalizeName(name);
+    const existing = currentLookup.get(normalized);
+    const teeTime = teeTimes.get(normalized) || existing?.teeTime || "--";
+
+    return existing ? {
+      ...existing,
+      name,
+      teeTime
+    } : {
+      name,
+      position: "--",
+      toPar: "--",
+      today: "--",
+      thru: "--",
+      teeTime,
+      status: "Tee time loaded",
+      madeCut: false,
+      isChampion: false,
+      scoreToPar: null
+    };
+  });
+
+  return {
+    lastUpdated: `Imported tee sheet on ${new Date().toLocaleString()}`,
+    players: mergedPlayers
+  };
+}
+
 function parseRawLeaderboardInput(rawText, currentLeaderboard, picks) {
   const draftedPlayers = collectDraftedPlayers(picks);
   const currentLookup = buildLookup(currentLeaderboard.players);
@@ -173,6 +280,7 @@ function parseRawLeaderboardInput(rawText, currentLeaderboard, picks) {
       toPar: scoreMatch ? scoreMatch[2].toUpperCase() : existing.toPar || "--",
       today: todayValue,
       thru: thruMatch ? thruMatch[1].toUpperCase() : existing.thru || "--",
+      teeTime: existing.teeTime || "--",
       status: /cut/i.test(line) ? "Cut" : /wd/i.test(line) ? "WD" : existing.status || "Updated",
       scoreToPar: parseScoreToPar(scoreMatch ? scoreMatch[2] : existing.toPar),
       madeCut: /cut/i.test(line) ? false : existing.madeCut,
@@ -192,6 +300,7 @@ function parseRawLeaderboardInput(rawText, currentLeaderboard, picks) {
       toPar: "--",
       today: "--",
       thru: "--",
+      teeTime: "--",
       status: "Not found",
       madeCut: false,
       isChampion: false
@@ -326,6 +435,7 @@ function renderMastersBoard(entries) {
         <td>${escapeHtml(player.position || "--")}</td>
         <td class="board-player">${escapeHtml(player.name)}</td>
         <td class="board-total ${totalClass}">${formatScore(player.scoreToPar)}</td>
+        <td>${escapeHtml(player.teeTime || "--")}</td>
         <td>${escapeHtml(player.thru || "--")}</td>
         <td>${escapeHtml(player.today || "--")}</td>
         <td>${escapeHtml(player.status || (player.found ? "Active" : "Not found"))}</td>
@@ -344,6 +454,7 @@ function renderMastersBoard(entries) {
         <div class="mobile-board-player">${escapeHtml(player.name)}</div>
         <div class="mobile-board-total ${totalClass}">${formatScore(player.scoreToPar)}</div>
         <div class="mobile-board-meta">
+          <span><strong>Tee</strong> ${escapeHtml(player.teeTime || "--")}</span>
           <span><strong>Thru</strong> ${escapeHtml(player.thru || "--")}</span>
           <span><strong>Today</strong> ${escapeHtml(player.today || "--")}</span>
           <span><strong>Status</strong> ${escapeHtml(player.status || (player.found ? "Active" : "Not found"))}</span>
@@ -360,6 +471,7 @@ function renderMastersBoard(entries) {
           <th><button class="sort-button" type="button" data-sort-key="position">Pos${renderSortLabel("position")}</button></th>
           <th><button class="sort-button" type="button" data-sort-key="player">Player${renderSortLabel("player")}</button></th>
           <th><button class="sort-button" type="button" data-sort-key="score">Total${renderSortLabel("score")}</button></th>
+          <th>Tee Time</th>
           <th>Thru</th>
           <th>Today</th>
           <th>Status</th>
@@ -424,6 +536,18 @@ function setAdminOpen(isOpen) {
   elements.adminPanel.setAttribute("aria-hidden", String(!isOpen));
 }
 
+function parseAdminInput(rawInput, currentLeaderboard, picks) {
+  if (rawInput.startsWith("{")) {
+    return validateLeaderboardData(JSON.parse(rawInput));
+  }
+
+  if (/PLAYER/i.test(rawInput) && /TEE\s*TIME/i.test(rawInput)) {
+    return parseTeeSheetCsv(rawInput, currentLeaderboard, picks);
+  }
+
+  return parseRawLeaderboardInput(rawInput, currentLeaderboard, picks);
+}
+
 async function init() {
   try {
     const { config, picks, leaderboard: leaderboardFromRepo } = await loadData();
@@ -439,13 +563,7 @@ async function init() {
     elements.applyData.addEventListener("click", () => {
       try {
         const rawInput = elements.leaderboardInput.value.trim();
-        let parsed;
-
-        if (rawInput.startsWith("{")) {
-          parsed = validateLeaderboardData(JSON.parse(rawInput));
-        } else {
-          parsed = parseRawLeaderboardInput(rawInput, latestLeaderboard || repoLeaderboard, latestPicks || picks);
-        }
+        const parsed = parseAdminInput(rawInput, latestLeaderboard || repoLeaderboard, latestPicks || picks);
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
         renderApp(config, picks, parsed);
@@ -455,9 +573,28 @@ async function init() {
       }
     });
 
+    elements.csvFileInput.addEventListener("change", async (event) => {
+      try {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const csvText = await file.text();
+        elements.leaderboardInput.value = csvText;
+        const parsed = parseTeeSheetCsv(csvText, latestLeaderboard || repoLeaderboard, latestPicks || picks);
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        renderApp(config, picks, parsed);
+        elements.adminStatus.textContent = `Imported tee-sheet CSV from ${file.name}.`;
+        event.target.value = "";
+      } catch (error) {
+        elements.adminStatus.textContent = error.message;
+      }
+    });
+
     elements.resetData.addEventListener("click", () => {
       localStorage.removeItem(STORAGE_KEY);
       renderApp(config, picks, repoLeaderboard);
+      elements.csvFileInput.value = "";
       elements.adminStatus.textContent = "Reset to the leaderboard stored in the repository.";
     });
   } catch (error) {
@@ -467,11 +604,6 @@ async function init() {
     elements.eventLeader.textContent = "Unable to load";
     elements.boardUpdate.textContent = "Load error";
   }
-}
-
-function renderSortArrow(key) {
-  if (boardSort.key !== key) return "";
-  return boardSort.direction === "asc" ? " ▲" : " ▼";
 }
 
 function compareText(a, b) {
