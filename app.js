@@ -12,10 +12,6 @@ const elements = {
   tournamentVenue: document.getElementById("tournament-venue"),
   eventLeader: document.getElementById("event-leader"),
   poolLeader: document.getElementById("pool-leader"),
-  entryCount: document.getElementById("entry-count"),
-  golferCount: document.getElementById("golfer-count"),
-  scoringFormat: document.getElementById("scoring-format"),
-  lastUpdated: document.getElementById("last-updated"),
   boardUpdate: document.getElementById("board-update"),
   boardPlayerCount: document.getElementById("board-player-count"),
   mastersBoard: document.getElementById("masters-board"),
@@ -32,6 +28,11 @@ const elements = {
 };
 
 let repoLeaderboard = null;
+let latestEntries = [];
+let boardSort = {
+  key: "score",
+  direction: "asc"
+};
 
 async function loadJson(path) {
   const response = await fetch(path, { cache: "no-store" });
@@ -178,11 +179,8 @@ function renderScoreboard(entries) {
   const rows = entries.map((entry, index) => `
     <tr>
       <td><span class="rank-pill">${index + 1}</span></td>
-      <td><strong>${escapeHtml(entry.name)}</strong><br><span class="muted">${entry.counted.length} counted golfers</span></td>
-      <td><span class="score-pill ${index === 0 ? "leading" : ""}">${formatScore(entry.adjustedScore)}</span></td>
-      <td>${formatScore(entry.rawScore)}</td>
-      <td>${formatBonus(entry.bonus)}</td>
-      <td>${entry.counted.map((pick) => escapeHtml(pick.name)).join(", ") || "--"}</td>
+      <td><strong>${escapeHtml(entry.name)}</strong></td>
+      <td><span class="score-pill ${index === 0 ? "leading" : ""}">${formatScore(entry.rawScore)}</span></td>
     </tr>
   `).join("");
 
@@ -192,10 +190,7 @@ function renderScoreboard(entries) {
         <tr>
           <th>Rank</th>
           <th>Entry</th>
-          <th>Adjusted</th>
-          <th>Raw</th>
-          <th>Bonus</th>
-          <th>Counted Picks</th>
+          <th>Best 4 Total</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -230,15 +225,7 @@ function renderMastersBoard(entries) {
   });
 
   const boardPlayers = Array.from(draftedPlayers.values())
-    .sort((a, b) => {
-      const aScore = a.found ? (a.scoreToPar ?? 999) : 999;
-      const bScore = b.found ? (b.scoreToPar ?? 999) : 999;
-      if (aScore !== bScore) return aScore - bScore;
-      const aPos = parsePosition(a.position) ?? 999;
-      const bPos = parsePosition(b.position) ?? 999;
-      if (aPos !== bPos) return aPos - bPos;
-      return a.name.localeCompare(b.name);
-    });
+    .sort(compareBoardPlayers);
 
   if (!boardPlayers.length) return renderEmptyState(elements.mastersBoard);
 
@@ -263,10 +250,10 @@ function renderMastersBoard(entries) {
     <table class="masters-board">
       <thead>
         <tr>
-          <th class="picked-by">Picked By</th>
-          <th>Pos</th>
-          <th>Player</th>
-          <th>Total</th>
+          <th class="picked-by"><button class="sort-button active" type="button" data-sort-key="owners">Picked By${renderSortArrow("owners")}</button></th>
+          <th><button class="sort-button" type="button" data-sort-key="position">Pos${renderSortArrow("position")}</button></th>
+          <th><button class="sort-button" type="button" data-sort-key="player">Player${renderSortArrow("player")}</button></th>
+          <th><button class="sort-button" type="button" data-sort-key="score">Total${renderSortArrow("score")}</button></th>
           <th>Thru</th>
           <th>Today</th>
           <th>Status</th>
@@ -275,6 +262,19 @@ function renderMastersBoard(entries) {
       <tbody>${rows}</tbody>
     </table>
   `;
+
+  elements.mastersBoard.querySelectorAll("[data-sort-key]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const key = button.getAttribute("data-sort-key");
+      if (boardSort.key === key) {
+        boardSort.direction = boardSort.direction === "asc" ? "desc" : "asc";
+      } else {
+        boardSort.key = key;
+        boardSort.direction = key === "owners" || key === "player" ? "asc" : "asc";
+      }
+      renderMastersBoard(latestEntries);
+    });
+  });
 }
 
 function updateHeader(config, entries, leaderboard) {
@@ -282,10 +282,6 @@ function updateHeader(config, entries, leaderboard) {
   elements.tournamentSubtitle.textContent = config.tournament.subtitle;
   elements.tournamentDates.textContent = config.tournament.dates;
   elements.tournamentVenue.textContent = config.tournament.venue;
-  elements.entryCount.textContent = String(entries.length);
-  elements.golferCount.textContent = String(leaderboard.players.length);
-  elements.scoringFormat.textContent = `Best ${config.scoring.countBest} of ${config.scoring.teamSize}`;
-  elements.lastUpdated.textContent = leaderboard.lastUpdated || "Waiting for data";
   elements.boardUpdate.textContent = leaderboard.lastUpdated || "Waiting for data";
 
   const eventLeader = leaderboard.players
@@ -296,7 +292,7 @@ function updateHeader(config, entries, leaderboard) {
     .join(" / ");
 
   elements.eventLeader.textContent = eventLeader || "No leaderboard data";
-  elements.poolLeader.textContent = entries[0] ? `${entries[0].name} (${formatScore(entries[0].adjustedScore)})` : "No pool entries";
+  elements.poolLeader.textContent = entries[0] ? `${entries[0].name} (${formatScore(entries[0].rawScore)})` : "No pool entries";
 }
 
 function seedAdminEditor(leaderboard) {
@@ -306,6 +302,7 @@ function seedAdminEditor(leaderboard) {
 function renderApp(config, picks, leaderboard) {
   const lookup = buildLookup(leaderboard.players);
   const entries = picks.entries.map((entry) => computeEntry(entry, lookup, config.scoring)).sort(compareEntries);
+  latestEntries = entries;
   updateHeader(config, entries, leaderboard);
   renderMastersBoard(entries);
   renderScoreboard(entries);
@@ -351,8 +348,36 @@ async function init() {
     [elements.mastersBoard, elements.scoreboard, elements.leaderboard].forEach(renderEmptyState);
     elements.poolLeader.textContent = "Unable to load";
     elements.eventLeader.textContent = "Unable to load";
-    elements.lastUpdated.textContent = "Load error";
+    elements.boardUpdate.textContent = "Load error";
   }
+}
+
+function renderSortArrow(key) {
+  if (boardSort.key !== key) return "";
+  return boardSort.direction === "asc" ? " ▲" : " ▼";
+}
+
+function compareText(a, b) {
+  return a.localeCompare(b);
+}
+
+function compareBoardPlayers(a, b) {
+  let result = 0;
+
+  if (boardSort.key === "owners") {
+    result = compareText(a.owners.join(", "), b.owners.join(", "));
+  } else if (boardSort.key === "position") {
+    result = (parsePosition(a.position) ?? 999) - (parsePosition(b.position) ?? 999);
+    if (result === 0) result = (a.scoreToPar ?? 999) - (b.scoreToPar ?? 999);
+  } else if (boardSort.key === "player") {
+    result = compareText(a.name, b.name);
+  } else {
+    result = (a.scoreToPar ?? 999) - (b.scoreToPar ?? 999);
+    if (result === 0) result = (parsePosition(a.position) ?? 999) - (parsePosition(b.position) ?? 999);
+  }
+
+  if (result === 0) result = compareText(a.name, b.name);
+  return boardSort.direction === "asc" ? result : -result;
 }
 
 init();

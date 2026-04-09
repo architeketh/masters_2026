@@ -236,6 +236,24 @@ button:hover,
   letter-spacing: 0.04em;
 }
 
+.sort-button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.sort-button:hover {
+  text-decoration: underline;
+  transform: none;
+}
+
 .masters-board thead th.picked-by {
   background: #0f6a3b;
   color: #fff;
