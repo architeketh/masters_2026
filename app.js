@@ -103,7 +103,6 @@ function formatLastUpdated(value) {
   if (!value) return "waiting for data";
   return value;
 }
-
 function getScoreClass(value) {
   if (value === null || value === undefined || Number.isNaN(value)) return "na";
   if (value > 0) return "over";
