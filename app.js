@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.09.11";
+const APP_VERSION = "2026.04.09.12";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -136,6 +136,12 @@ function getScoreClass(value) {
   if (value > 0) return "over";
   if (value < 0) return "under";
   return "even";
+}
+
+function formatPlayerStatus(player) {
+  const thru = String(player?.thru || "").trim().toUpperCase();
+  if (thru === "F") return "Finished";
+  return player?.status || (player?.found ? "Active" : "Not found");
 }
 
 function hasLiveRoundData(player) {
@@ -715,7 +721,7 @@ function renderMastersBoard(entries) {
         <td>${escapeHtml(player.teeTime || "--")}</td>
         <td>${escapeHtml(player.thru || "--")}</td>
         <td>${escapeHtml(player.today || "--")}</td>
-        <td>${escapeHtml(player.status || (player.found ? "Active" : "Not found"))}</td>
+        <td>${escapeHtml(formatPlayerStatus(player))}</td>
       </tr>
       `;
     }).join("");
@@ -734,7 +740,7 @@ function renderMastersBoard(entries) {
         <div class="mobile-board-meta">
           <span><strong>Thru</strong> ${escapeHtml(player.thru || "--")}</span>
           <span><strong>Today</strong> ${escapeHtml(player.today || "--")}</span>
-          <span><strong>Status</strong> ${escapeHtml(player.status || (player.found ? "Active" : "Not found"))}</span>
+          <span><strong>Status</strong> ${escapeHtml(formatPlayerStatus(player))}</span>
         </div>
       </article>
     `;
