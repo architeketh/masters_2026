@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.09.13";
+const APP_VERSION = "2026.04.09.14";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -362,6 +362,15 @@ function parseLeaderboardCsv(rawText, currentLeaderboard, picks) {
 
     const rawToday = todayColumnIndex >= 0 ? row[todayColumnIndex] : "";
     const rawToPar = toParColumnIndex >= 0 ? row[toParColumnIndex] : "";
+    const rawThru = thruColumnIndex >= 0 ? row[thruColumnIndex] : "";
+    const rawTeeTime = teeTimeColumnIndex >= 0 ? row[teeTimeColumnIndex] : "";
+    const thruLooksLikeTeeTime = parseTeeTime(rawThru) !== null;
+    const normalizedThru = rawThru && !thruLooksLikeTeeTime ? rawThru.toUpperCase() : "--";
+    const normalizedTeeTime = rawTeeTime
+      ? rawTeeTime
+      : thruLooksLikeTeeTime
+        ? rawThru
+        : existing.teeTime || "--";
     const fallbackToPar = rawToPar || ((existing.toPar === "--" || !existing.toPar) ? rawToday : "");
     const normalizedToPar = fallbackToPar ? fallbackToPar.toUpperCase() : existing.toPar || "--";
 
@@ -371,11 +380,13 @@ function parseLeaderboardCsv(rawText, currentLeaderboard, picks) {
       position: positionColumnIndex >= 0 && row[positionColumnIndex] ? row[positionColumnIndex].toUpperCase() : existing.position || "--",
       toPar: normalizedToPar,
       today: rawToday ? rawToday.toUpperCase() : existing.today || "--",
-      thru: thruColumnIndex >= 0 && row[thruColumnIndex] ? row[thruColumnIndex].toUpperCase() : existing.thru || "--",
-      teeTime: teeTimeColumnIndex >= 0 && row[teeTimeColumnIndex] ? row[teeTimeColumnIndex] : existing.teeTime || "--",
+      thru: normalizedThru,
+      teeTime: normalizedTeeTime,
       status: statusColumnIndex >= 0 && row[statusColumnIndex]
         ? row[statusColumnIndex]
-        : (rawToday || (thruColumnIndex >= 0 && row[thruColumnIndex])) ? "Live" : existing.status || "Updated",
+        : thruLooksLikeTeeTime
+          ? "Scheduled"
+          : (rawToday || rawThru) ? "Live" : existing.status || "Updated",
       madeCut: (statusColumnIndex >= 0 && /cut/i.test(row[statusColumnIndex])) ? false : existing.madeCut,
       isChampion: existing.isChampion || false,
       scoreToPar: parseScoreToPar(normalizedToPar)
