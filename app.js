@@ -16,9 +16,11 @@ const elements = {
   golferCount: document.getElementById("golfer-count"),
   scoringFormat: document.getElementById("scoring-format"),
   lastUpdated: document.getElementById("last-updated"),
+  boardUpdate: document.getElementById("board-update"),
+  boardPlayerCount: document.getElementById("board-player-count"),
+  mastersBoard: document.getElementById("masters-board"),
   scoreboard: document.getElementById("scoreboard"),
   leaderboard: document.getElementById("leaderboard"),
-  teamGrid: document.getElementById("team-grid"),
   adminPanel: document.getElementById("admin-panel"),
   leaderboardInput: document.getElementById("leaderboard-input"),
   adminStatus: document.getElementById("admin-status"),
@@ -35,6 +37,24 @@ async function loadJson(path) {
   const response = await fetch(path, { cache: "no-store" });
   if (!response.ok) throw new Error(`Failed to load ${path}`);
   return response.json();
+}
+
+async function loadData() {
+  if (window.MASTERS_CONFIG && window.MASTERS_PICKS && window.MASTERS_LEADERBOARD) {
+    return {
+      config: window.MASTERS_CONFIG,
+      picks: window.MASTERS_PICKS,
+      leaderboard: window.MASTERS_LEADERBOARD
+    };
+  }
+
+  const [config, picks, leaderboard] = await Promise.all([
+    loadJson(DATA_FILES.config),
+    loadJson(DATA_FILES.picks),
+    loadJson(DATA_FILES.leaderboard)
+  ]);
+
+  return { config, picks, leaderboard };
 }
 
 function parseScoreToPar(value) {
@@ -184,31 +204,70 @@ function renderScoreboard(entries) {
 }
 
 function renderLeaderboard(players) {
-  if (!players.length) return renderEmptyState(elements.leaderboard);
-
-  const rows = players
-    .slice()
-    .sort((a, b) => (parseScoreToPar(a.toPar) ?? 999) - (parseScoreToPar(b.toPar) ?? 999))
-    .slice(0, 12)
-    .map((player) => `
-      <tr>
-        <td>${escapeHtml(player.position || "--")}</td>
-        <td>${escapeHtml(player.name)}</td>
-        <td>${escapeHtml(player.thru || "--")}</td>
-        <td>${formatScore(parseScoreToPar(player.toPar))}</td>
-        <td>${escapeHtml(player.today || "--")}</td>
-        <td>${escapeHtml(player.status || "Active")}</td>
-      </tr>
-    `).join("");
-
   elements.leaderboard.innerHTML = `
-    <table>
+    <div class="empty-state">
+      <p>Data comes from <code>data/picks.js</code> and <code>data/leaderboard.js</code> right now.</p>
+      <p>We can swap this to a live golf feed later and keep the same board layout.</p>
+    </div>
+  `;
+}
+
+function renderMastersBoard(entries) {
+  const draftedPlayers = new Map();
+
+  entries.forEach((entry) => {
+    entry.picks.forEach((pick) => {
+      const key = normalizeName(pick.name);
+      if (!draftedPlayers.has(key)) {
+        draftedPlayers.set(key, {
+          ...pick,
+          owners: [entry.name]
+        });
+      } else {
+        draftedPlayers.get(key).owners.push(entry.name);
+      }
+    });
+  });
+
+  const boardPlayers = Array.from(draftedPlayers.values())
+    .sort((a, b) => {
+      const aScore = a.found ? (a.scoreToPar ?? 999) : 999;
+      const bScore = b.found ? (b.scoreToPar ?? 999) : 999;
+      if (aScore !== bScore) return aScore - bScore;
+      const aPos = parsePosition(a.position) ?? 999;
+      const bPos = parsePosition(b.position) ?? 999;
+      if (aPos !== bPos) return aPos - bPos;
+      return a.name.localeCompare(b.name);
+    });
+
+  if (!boardPlayers.length) return renderEmptyState(elements.mastersBoard);
+
+  elements.boardPlayerCount.textContent = `${boardPlayers.length} drafted golfers`;
+
+  const rows = boardPlayers.map((player) => {
+    const totalClass = player.scoreToPar > 0 ? "over" : "under";
+    return `
+      <tr>
+        <td class="board-owner">${player.owners.map((owner) => `<span class="owner-chip">${escapeHtml(owner)}</span>`).join("")}</td>
+        <td>${escapeHtml(player.position || "--")}</td>
+        <td class="board-player">${escapeHtml(player.name)}</td>
+        <td class="board-total ${totalClass}">${formatScore(player.scoreToPar)}</td>
+        <td>${escapeHtml(player.thru || "--")}</td>
+        <td>${escapeHtml(player.today || "--")}</td>
+        <td>${escapeHtml(player.status || (player.found ? "Active" : "Not found"))}</td>
+      </tr>
+    `;
+  }).join("");
+
+  elements.mastersBoard.innerHTML = `
+    <table class="masters-board">
       <thead>
         <tr>
+          <th class="picked-by">Picked By</th>
           <th>Pos</th>
           <th>Player</th>
+          <th>Total</th>
           <th>Thru</th>
-          <th>To Par</th>
           <th>Today</th>
           <th>Status</th>
         </tr>
@@ -216,65 +275,6 @@ function renderLeaderboard(players) {
       <tbody>${rows}</tbody>
     </table>
   `;
-}
-
-function renderTeamCards(entries) {
-  if (!entries.length) return renderEmptyState(elements.teamGrid);
-
-  elements.teamGrid.innerHTML = entries.map((entry, index) => {
-    const picks = entry.picks.map((pick) => {
-      const badges = [];
-      if (pick.counted) badges.push('<span class="badge counted">Counted</span>');
-      if (pick.isChampion) badges.push('<span class="badge">Champion</span>');
-      if (pick.madeCut) badges.push('<span class="badge cut">Made cut</span>');
-      if (pick.found && (parsePosition(pick.position) ?? 999) <= 10) badges.push('<span class="badge">Top 10</span>');
-
-      return `
-        <div class="pick-row ${pick.counted ? "counted" : ""} ${pick.found ? "" : "missing"}">
-          <div>
-            <div class="pick-player">${escapeHtml(pick.name)}</div>
-            <div class="pick-meta">
-              <span class="pick-status">Pos ${escapeHtml(pick.position || "--")}</span>
-              <span class="pick-status">${escapeHtml(pick.thru || "--")}</span>
-              <span class="pick-status">${escapeHtml(pick.status || "Active")}</span>
-            </div>
-          </div>
-          <div>
-            <strong>${formatScore(pick.scoreToPar)}</strong>
-            <div class="pick-meta">${badges.join("")}</div>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    return `
-      <article class="team-card">
-        <div class="team-head">
-          <div>
-            <p class="section-label">#${index + 1} in pool</p>
-            <h3>${escapeHtml(entry.name)}</h3>
-          </div>
-          <span class="rank-pill">${entry.counted.length}/${entry.picks.length} active</span>
-        </div>
-        <div class="team-score-row">
-          <div>
-            <div class="team-note">Adjusted score</div>
-            <div class="team-score">${formatScore(entry.adjustedScore)}</div>
-          </div>
-          <div>
-            <div class="team-note">Raw ${formatScore(entry.rawScore)}</div>
-            <div class="team-note">Bonus ${formatBonus(entry.bonus)}</div>
-          </div>
-        </div>
-        <div class="bonus-grid">
-          <div class="bonus-row"><span>Champion bonus</span><strong>${entry.championCount} x</strong></div>
-          <div class="bonus-row"><span>Top 10 bonus</span><strong>${entry.topTenCount} x</strong></div>
-          <div class="bonus-row"><span>Made cut bonus</span><strong>${entry.madeCutCount} x</strong></div>
-        </div>
-        <div class="pick-list">${picks}</div>
-      </article>
-    `;
-  }).join("");
 }
 
 function updateHeader(config, entries, leaderboard) {
@@ -286,6 +286,7 @@ function updateHeader(config, entries, leaderboard) {
   elements.golferCount.textContent = String(leaderboard.players.length);
   elements.scoringFormat.textContent = `Best ${config.scoring.countBest} of ${config.scoring.teamSize}`;
   elements.lastUpdated.textContent = leaderboard.lastUpdated || "Waiting for data";
+  elements.boardUpdate.textContent = leaderboard.lastUpdated || "Waiting for data";
 
   const eventLeader = leaderboard.players
     .slice()
@@ -306,9 +307,9 @@ function renderApp(config, picks, leaderboard) {
   const lookup = buildLookup(leaderboard.players);
   const entries = picks.entries.map((entry) => computeEntry(entry, lookup, config.scoring)).sort(compareEntries);
   updateHeader(config, entries, leaderboard);
+  renderMastersBoard(entries);
   renderScoreboard(entries);
   renderLeaderboard(leaderboard.players);
-  renderTeamCards(entries);
   seedAdminEditor(leaderboard);
 }
 
@@ -319,11 +320,7 @@ function setAdminOpen(isOpen) {
 
 async function init() {
   try {
-    const [config, picks, leaderboardFromRepo] = await Promise.all([
-      loadJson(DATA_FILES.config),
-      loadJson(DATA_FILES.picks),
-      loadJson(DATA_FILES.leaderboard)
-    ]);
+    const { config, picks, leaderboard: leaderboardFromRepo } = await loadData();
 
     repoLeaderboard = leaderboardFromRepo;
     const stored = getStoredLeaderboard();
@@ -351,7 +348,7 @@ async function init() {
     });
   } catch (error) {
     console.error(error);
-    [elements.scoreboard, elements.leaderboard, elements.teamGrid].forEach(renderEmptyState);
+    [elements.mastersBoard, elements.scoreboard, elements.leaderboard].forEach(renderEmptyState);
     elements.poolLeader.textContent = "Unable to load";
     elements.eventLeader.textContent = "Unable to load";
     elements.lastUpdated.textContent = "Load error";

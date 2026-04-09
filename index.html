@@ -35,6 +35,21 @@
     </header>
 
     <main class="dashboard">
+      <section class="masters-board-shell">
+        <div class="masters-board-title">
+          <p class="board-kicker">Pool Board</p>
+          <h2>2026 Masters Leaders</h2>
+        </div>
+        <div class="masters-board-frame">
+          <div class="board-meta-row">
+            <span id="board-update">Updated from local leaderboard data</span>
+            <span id="board-player-count">21 drafted golfers</span>
+          </div>
+          <div id="masters-board" class="board-table-wrap"></div>
+          <div class="board-footer">Augusta-inspired pool leaderboard</div>
+        </div>
+      </section>
+
       <section class="card summary-card">
         <div>
           <p class="section-label">Tournament Snapshot</p>
@@ -63,24 +78,13 @@
         <article class="card">
           <div class="section-heading">
             <div>
-              <p class="section-label">Tournament Leaders</p>
-              <h2>Masters leaderboard</h2>
+              <p class="section-label">Data Source</p>
+              <h2>How this board is populated</h2>
             </div>
-            <p class="muted">Update this from `data/leaderboard.json` or the admin panel.</p>
+            <p class="muted">Local data now, live feed later if you want it.</p>
           </div>
           <div id="leaderboard" class="table-wrap"></div>
         </article>
-      </section>
-
-      <section class="card">
-        <div class="section-heading">
-          <div>
-            <p class="section-label">Team Cards</p>
-            <h2>Who each player drafted</h2>
-          </div>
-          <p class="muted">Counted golfers are highlighted; bonuses are shown per entry.</p>
-        </div>
-        <div id="team-grid" class="team-grid"></div>
       </section>
     </main>
   </div>
@@ -108,6 +112,9 @@
     </div>
   </template>
 
+  <script src="./data/config.js" defer></script>
+  <script src="./data/picks.js" defer></script>
+  <script src="./data/leaderboard.js" defer></script>
   <script src="./app.js" defer></script>
 </body>
 </html>
