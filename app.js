@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.09.5";
+const APP_VERSION = "2026.04.09.6";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -103,6 +103,17 @@ function getScoreClass(value) {
   if (value > 0) return "over";
   if (value < 0) return "under";
   return "even";
+}
+
+function hasLiveRoundData(player) {
+  const thru = String(player.thru || "").trim().toUpperCase();
+  const today = String(player.today || "").trim().toUpperCase();
+  const status = String(player.status || "").trim().toLowerCase();
+
+  if (typeof player.scoreToPar === "number") return true;
+  if (thru && thru !== "--") return true;
+  if (today && today !== "--") return true;
+  return status.includes("live") || status.includes("final") || status.includes("complete") || status.includes("round");
 }
 
 function formatBonus(value) {
@@ -579,7 +590,7 @@ function renderLeaderboard(players) {
   }
 
   const topFive = poolLeader.picks
-    .filter((pick) => pick.found)
+    .filter((pick) => pick.found && hasLiveRoundData(pick))
     .slice()
     .sort((a, b) => {
       const aScore = a.scoreToPar ?? 999;
@@ -588,6 +599,15 @@ function renderLeaderboard(players) {
       return a.name.localeCompare(b.name);
     })
     .slice(0, 5);
+
+  if (!topFive.length) {
+    elements.leaderboard.innerHTML = `
+      <div class="empty-state">
+        <p>Current pool leader golfers will show here once live round data starts coming in.</p>
+      </div>
+    `;
+    return;
+  }
 
   const rows = topFive.map((player, index) => `
     <tr>

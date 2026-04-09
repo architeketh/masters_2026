@@ -56,16 +56,17 @@ body::before {
   grid-template-columns: 1.7fr 1fr;
   gap: 24px;
   border-radius: 32px;
-  padding: 32px;
+  padding: 148px 32px 32px;
   position: relative;
 }
 
 .hero-logo-wrap {
   position: absolute;
-  top: 22px;
-  left: 22px;
-  width: 88px;
-  height: 88px;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 176px;
+  height: 176px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -119,7 +120,7 @@ h2 { font-size: clamp(1.75rem, 4vw, 2.3rem); }
 }
 
 .hero-copy {
-  padding-left: 110px;
+  padding-left: 0;
 }
 
 .hero-meta {
@@ -481,6 +482,8 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.5); }
 .masters-board tbody td.board-total.under,
 .mobile-board-total.under {
   color: #b02b2c;
+  background: rgba(176, 43, 44, 0.12);
+  border: 1px solid rgba(176, 43, 44, 0.2);
 }
 
 .score-pill.over,
@@ -488,6 +491,8 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.5); }
 .masters-board tbody td.board-total.over,
 .mobile-board-total.over {
   color: #29573b;
+  background: rgba(41, 87, 59, 0.14);
+  border: 1px solid rgba(41, 87, 59, 0.22);
 }
 
 .score-pill.even,
@@ -495,9 +500,16 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.5); }
 .masters-board tbody td.board-total.even,
 .mobile-board-total.even {
   color: #1f2a1e;
+  background: rgba(31, 42, 30, 0.08);
+  border: 1px solid rgba(31, 42, 30, 0.16);
 }
 
 .mini-score {
+  display: inline-flex;
+  min-width: 40px;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
   font-weight: 700;
 }
 
@@ -630,15 +642,16 @@ textarea {
   }
 
   .hero-logo-wrap {
-    width: 64px;
-    height: 64px;
+    width: 128px;
+    height: 128px;
     top: 16px;
-    left: 16px;
+    left: 50%;
+    transform: translateX(-50%);
     border-radius: 18px;
   }
 
   .hero-copy {
-    padding-left: 76px;
+    padding-left: 0;
   }
 
   .hero-panel {
