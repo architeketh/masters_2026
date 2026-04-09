@@ -375,6 +375,12 @@ button:hover,
   font-size: 0.92rem;
 }
 
+.mobile-board-meta span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
 .card {
   border-radius: var(--radius);
   padding: 24px;
@@ -525,6 +531,14 @@ textarea {
   .board-meta-row {
     flex-direction: column;
   }
+
+  .board-table-wrap {
+    display: none;
+  }
+
+  .mobile-board-list {
+    display: block;
+  }
 }
 
 @media (max-width: 640px) {
@@ -568,14 +582,6 @@ textarea {
   .masters-board-frame {
     border-width: 8px;
     border-radius: 18px;
-  }
-
-  .board-table-wrap {
-    display: none;
-  }
-
-  .mobile-board-list {
-    display: block;
   }
 
   .board-meta-row,
