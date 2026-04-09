@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.09.6";
+const APP_VERSION = "2026.04.09.7";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -266,7 +266,7 @@ function parseLeaderboardCsv(rawText, currentLeaderboard, picks) {
   const playerColumnIndex = findColumnIndex(header, ["PLAYER", "NAME"]);
   const teeTimeColumnIndex = findColumnIndex(header, ["TEE TIME", "TEE_TIME", "TEETIME"]);
   const positionColumnIndex = findColumnIndex(header, ["POS", "POSITION", "PLACE"]);
-  const toParColumnIndex = findColumnIndex(header, ["TO PAR", "TO_PAR", "TOPAR", "TOTAL"]);
+  const toParColumnIndex = findColumnIndex(header, ["TO PAR", "TO_PAR", "TOPAR", "SCORE", "TOTAL"]);
   const todayColumnIndex = findColumnIndex(header, ["TODAY", "ROUND", "R1", "ROUND 1"]);
   const thruColumnIndex = findColumnIndex(header, ["THRU", "THROUGH"]);
   const statusColumnIndex = findColumnIndex(header, ["STATUS"]);
@@ -596,6 +596,9 @@ function renderLeaderboard(players) {
       const aScore = a.scoreToPar ?? 999;
       const bScore = b.scoreToPar ?? 999;
       if (aScore !== bScore) return aScore - bScore;
+      const aThru = a.thru === "F" ? 99 : (Number(a.thru) || 0);
+      const bThru = b.thru === "F" ? 99 : (Number(b.thru) || 0);
+      if (aThru !== bThru) return bThru - aThru;
       return a.name.localeCompare(b.name);
     })
     .slice(0, 5);

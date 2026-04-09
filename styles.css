@@ -486,6 +486,12 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.5); }
   border: 1px solid rgba(176, 43, 44, 0.2);
 }
 
+.score-pill.leading.under {
+  color: #b02b2c;
+  background: linear-gradient(180deg, #f7ead0, #f2d8d8);
+  border: 1px solid rgba(176, 43, 44, 0.22);
+}
+
 .score-pill.over,
 .mini-score.over,
 .masters-board tbody td.board-total.over,
@@ -495,6 +501,12 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.5); }
   border: 1px solid rgba(41, 87, 59, 0.22);
 }
 
+.score-pill.leading.over {
+  color: #29573b;
+  background: linear-gradient(180deg, #f7ead0, #dbe9de);
+  border: 1px solid rgba(41, 87, 59, 0.24);
+}
+
 .score-pill.even,
 .mini-score.even,
 .masters-board tbody td.board-total.even,
@@ -502,6 +514,12 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.5); }
   color: #1f2a1e;
   background: rgba(31, 42, 30, 0.08);
   border: 1px solid rgba(31, 42, 30, 0.16);
+}
+
+.score-pill.leading.even {
+  color: #1f2a1e;
+  background: linear-gradient(180deg, #f7ead0, #ece6d8);
+  border: 1px solid rgba(31, 42, 30, 0.18);
 }
 
 .mini-score {
