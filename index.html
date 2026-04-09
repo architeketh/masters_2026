@@ -84,14 +84,14 @@
     <div class="admin-header">
       <div>
         <p class="section-label">Admin</p>
-        <h2>Load updated leaderboard data</h2>
+        <h2>Paste updated leaderboard data</h2>
       </div>
       <button id="close-admin" class="ghost-button" type="button">Close</button>
     </div>
-    <p class="muted admin-copy">Paste a JSON object with a `lastUpdated` field and a `players` array. Saved data stays in this browser until you reset it.</p>
+    <p class="muted admin-copy">Paste either the full JSON object or copied leaderboard rows. The importer will try to match your 21 drafted golfers and save the update in this browser.</p>
     <textarea id="leaderboard-input" spellcheck="false" aria-label="Leaderboard JSON"></textarea>
     <div class="admin-actions">
-      <button id="apply-data" type="button">Apply in browser</button>
+      <button id="apply-data" type="button">Apply update</button>
       <button id="reset-data" class="ghost-button" type="button">Reset to repo data</button>
     </div>
     <p id="admin-status" class="muted"></p>

@@ -30,6 +30,8 @@ const elements = {
 
 let repoLeaderboard = null;
 let latestEntries = [];
+let latestPicks = null;
+let latestLeaderboard = null;
 let boardSort = {
   key: "score",
   direction: "asc"
@@ -98,6 +100,10 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function getStoredLeaderboard() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -114,12 +120,88 @@ function validateLeaderboardData(payload) {
   return payload;
 }
 
+function collectDraftedPlayers(picks) {
+  return Array.from(
+    new Set(
+      picks.entries.flatMap((entry) => entry.picks.map((name) => name.trim()))
+    )
+  );
+}
+
 function buildLookup(players) {
   const lookup = new Map();
   players.forEach((player) => {
     lookup.set(normalizeName(player.name), { ...player, scoreToPar: parseScoreToPar(player.toPar) });
   });
   return lookup;
+}
+
+function parseRawLeaderboardInput(rawText, currentLeaderboard, picks) {
+  const draftedPlayers = collectDraftedPlayers(picks);
+  const currentLookup = buildLookup(currentLeaderboard.players);
+  const normalizedDrafted = draftedPlayers.map((name) => ({
+    name,
+    normalized: normalizeName(name)
+  }));
+
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const matched = new Map();
+
+  lines.forEach((line) => {
+    const normalizedLine = normalizeName(line);
+    const drafted = normalizedDrafted.find((player) => normalizedLine.includes(player.normalized));
+    if (!drafted) return;
+
+    const positionMatch = line.match(/\b(T?\d+|CUT|WD|DQ)\b/i);
+    const scoreMatch = line.match(/(^|\s)(E|[+-]\d+)(?=\s|$)/i);
+    const thruMatch = line.match(/\b(F|WD|DQ|CUT|[1-9]|1[0-8])\b/i);
+
+    const afterName = line.split(new RegExp(escapeRegExp(drafted.name), "i"))[1] || "";
+    const trailingScoreMatches = Array.from(afterName.matchAll(/\b(E|[+-]\d+)\b/gi)).map((match) => match[1]);
+    const todayValue = trailingScoreMatches.length > 1 ? trailingScoreMatches[1] : trailingScoreMatches[0] || "--";
+
+    const existing = currentLookup.get(drafted.normalized) || { name: drafted.name };
+
+    matched.set(drafted.normalized, {
+      ...existing,
+      name: drafted.name,
+      position: positionMatch ? positionMatch[1].toUpperCase() : existing.position || "--",
+      toPar: scoreMatch ? scoreMatch[2].toUpperCase() : existing.toPar || "--",
+      today: todayValue,
+      thru: thruMatch ? thruMatch[1].toUpperCase() : existing.thru || "--",
+      status: /cut/i.test(line) ? "Cut" : /wd/i.test(line) ? "WD" : existing.status || "Updated",
+      scoreToPar: parseScoreToPar(scoreMatch ? scoreMatch[2] : existing.toPar),
+      madeCut: /cut/i.test(line) ? false : existing.madeCut,
+      isChampion: existing.isChampion || false
+    });
+  });
+
+  if (!matched.size) {
+    throw new Error("No drafted golfers were recognized. Paste rows that include player names.");
+  }
+
+  const mergedPlayers = draftedPlayers.map((name) => {
+    const normalized = normalizeName(name);
+    return matched.get(normalized) || currentLookup.get(normalized) || {
+      name,
+      position: "--",
+      toPar: "--",
+      today: "--",
+      thru: "--",
+      status: "Not found",
+      madeCut: false,
+      isChampion: false
+    };
+  });
+
+  return {
+    lastUpdated: `Imported on ${new Date().toLocaleString()}`,
+    players: mergedPlayers
+  };
 }
 
 function computeEntry(entry, lookup, scoring) {
@@ -328,6 +410,8 @@ function renderApp(config, picks, leaderboard) {
   const lookup = buildLookup(leaderboard.players);
   const entries = picks.entries.map((entry) => computeEntry(entry, lookup, config.scoring)).sort(compareEntries);
   latestEntries = entries;
+  latestPicks = picks;
+  latestLeaderboard = leaderboard;
   updateHeader(config, entries, leaderboard);
   renderMastersBoard(entries);
   renderScoreboard(entries);
@@ -354,10 +438,18 @@ async function init() {
 
     elements.applyData.addEventListener("click", () => {
       try {
-        const parsed = validateLeaderboardData(JSON.parse(elements.leaderboardInput.value));
+        const rawInput = elements.leaderboardInput.value.trim();
+        let parsed;
+
+        if (rawInput.startsWith("{")) {
+          parsed = validateLeaderboardData(JSON.parse(rawInput));
+        } else {
+          parsed = parseRawLeaderboardInput(rawInput, latestLeaderboard || repoLeaderboard, latestPicks || picks);
+        }
+
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
         renderApp(config, picks, parsed);
-        elements.adminStatus.textContent = "Custom leaderboard applied in this browser.";
+        elements.adminStatus.textContent = "Leaderboard update applied in this browser.";
       } catch (error) {
         elements.adminStatus.textContent = error.message;
       }
