@@ -551,11 +551,34 @@ textarea {
   }
 
   .board-table-wrap {
-    display: none;
+    display: block;
+    overflow-x: auto;
   }
 
   .mobile-board-list {
-    display: block;
+    display: none;
+  }
+
+  .masters-board {
+    min-width: 860px;
+  }
+
+  .masters-board th,
+  .masters-board td {
+    padding: 8px 9px;
+  }
+
+  .masters-board thead th {
+    font-size: 0.94rem;
+  }
+
+  .masters-board tbody td {
+    font-size: 0.76rem;
+  }
+
+  .masters-board tbody td.board-player,
+  .masters-board tbody td.board-total {
+    font-size: 0.96rem;
   }
 }
 
@@ -602,10 +625,37 @@ textarea {
     border-radius: 18px;
   }
 
+  .masters-board {
+    min-width: 720px;
+  }
+
+  .masters-board th,
+  .masters-board td {
+    padding: 6px 7px;
+  }
+
+  .masters-board thead th {
+    font-size: 0.74rem;
+  }
+
+  .masters-board tbody td {
+    font-size: 0.64rem;
+  }
+
+  .masters-board tbody td.board-player,
+  .masters-board tbody td.board-total {
+    font-size: 0.82rem;
+  }
+
   .board-meta-row,
   .board-footer {
     padding: 12px 14px;
-    font-size: 0.92rem;
+    font-size: 0.82rem;
+  }
+
+  .board-footer {
+    gap: 8px;
+    flex-wrap: wrap;
   }
 
   .table-wrap table th,
