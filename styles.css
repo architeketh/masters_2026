@@ -217,6 +217,10 @@ button:hover,
   background: #f7f3e8;
 }
 
+.mobile-board-list {
+  display: none;
+}
+
 .masters-board {
   min-width: 980px;
 }
@@ -296,6 +300,52 @@ button:hover,
   border: 1px solid rgba(15, 106, 59, 0.18);
   font-size: 0.82rem;
   margin: 2px 6px 2px 0;
+}
+
+.mobile-board-card {
+  border-top: 2px solid #111;
+  background: #fff;
+  padding: 14px;
+}
+
+.mobile-board-top,
+.mobile-board-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.mobile-board-owners {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mobile-board-pos {
+  font-weight: 800;
+  color: #0f6a3b;
+}
+
+.mobile-board-player {
+  margin-top: 10px;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.mobile-board-total {
+  margin-top: 8px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #b02b2c;
+}
+
+.mobile-board-meta {
+  margin-top: 12px;
+  flex-wrap: wrap;
+  align-items: start;
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .card {
@@ -426,7 +476,6 @@ textarea {
 @media (max-width: 920px) {
   .hero,
   .two-column { grid-template-columns: 1fr; }
-  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   .board-meta-row {
     flex-direction: column;
@@ -442,7 +491,14 @@ textarea {
   .hero,
   .card { padding: 20px; }
 
-  .summary-grid { grid-template-columns: 1fr; }
+  .hero {
+    gap: 18px;
+    border-radius: 24px;
+  }
+
+  .hero-panel {
+    grid-template-columns: 1fr;
+  }
 
   .section-heading,
   .admin-header,
@@ -452,14 +508,33 @@ textarea {
     align-items: start;
   }
 
-  .masters-board thead th,
-  .masters-board tbody td {
+  .masters-board-frame {
+    border-width: 8px;
+    border-radius: 18px;
+  }
+
+  .board-table-wrap {
+    display: none;
+  }
+
+  .mobile-board-list {
+    display: block;
+  }
+
+  .board-meta-row,
+  .board-footer {
+    padding: 12px 14px;
+    font-size: 0.92rem;
+  }
+
+  .table-wrap table th,
+  .table-wrap table td {
     padding: 10px 8px;
   }
 
-  .masters-board tbody td.board-player,
-  .masters-board tbody td.board-total {
-    font-size: 1rem;
+  .table-wrap table th:nth-child(1),
+  .table-wrap table td:nth-child(1) {
+    width: 58px;
   }
 
   .admin-panel {

@@ -15,6 +15,7 @@ const elements = {
   boardUpdate: document.getElementById("board-update"),
   boardPlayerCount: document.getElementById("board-player-count"),
   mastersBoard: document.getElementById("masters-board"),
+  mastersBoardMobile: document.getElementById("masters-board-mobile"),
   scoreboard: document.getElementById("scoreboard"),
   leaderboard: document.getElementById("leaderboard"),
   adminPanel: document.getElementById("admin-panel"),
@@ -227,13 +228,17 @@ function renderMastersBoard(entries) {
   const boardPlayers = Array.from(draftedPlayers.values())
     .sort(compareBoardPlayers);
 
-  if (!boardPlayers.length) return renderEmptyState(elements.mastersBoard);
+  if (!boardPlayers.length) {
+    renderEmptyState(elements.mastersBoard);
+    renderEmptyState(elements.mastersBoardMobile);
+    return;
+  }
 
   elements.boardPlayerCount.textContent = `${boardPlayers.length} drafted golfers`;
 
   const rows = boardPlayers.map((player) => {
-    const totalClass = player.scoreToPar > 0 ? "over" : "under";
-    return `
+      const totalClass = player.scoreToPar > 0 ? "over" : "under";
+      return `
       <tr>
         <td class="board-owner">${player.owners.map((owner) => `<span class="owner-chip">${escapeHtml(owner)}</span>`).join("")}</td>
         <td>${escapeHtml(player.position || "--")}</td>
@@ -243,6 +248,25 @@ function renderMastersBoard(entries) {
         <td>${escapeHtml(player.today || "--")}</td>
         <td>${escapeHtml(player.status || (player.found ? "Active" : "Not found"))}</td>
       </tr>
+      `;
+    }).join("");
+
+  const mobileCards = boardPlayers.map((player) => {
+    const totalClass = player.scoreToPar > 0 ? "over" : "under";
+    return `
+      <article class="mobile-board-card">
+        <div class="mobile-board-top">
+          <div class="mobile-board-owners">${player.owners.map((owner) => `<span class="owner-chip">${escapeHtml(owner)}</span>`).join("")}</div>
+          <div class="mobile-board-pos">${escapeHtml(player.position || "--")}</div>
+        </div>
+        <div class="mobile-board-player">${escapeHtml(player.name)}</div>
+        <div class="mobile-board-total ${totalClass}">${formatScore(player.scoreToPar)}</div>
+        <div class="mobile-board-meta">
+          <span><strong>Thru</strong> ${escapeHtml(player.thru || "--")}</span>
+          <span><strong>Today</strong> ${escapeHtml(player.today || "--")}</span>
+          <span><strong>Status</strong> ${escapeHtml(player.status || (player.found ? "Active" : "Not found"))}</span>
+        </div>
+      </article>
     `;
   }).join("");
 
@@ -250,10 +274,10 @@ function renderMastersBoard(entries) {
     <table class="masters-board">
       <thead>
         <tr>
-          <th class="picked-by"><button class="sort-button active" type="button" data-sort-key="owners">Picked By${renderSortArrow("owners")}</button></th>
-          <th><button class="sort-button" type="button" data-sort-key="position">Pos${renderSortArrow("position")}</button></th>
-          <th><button class="sort-button" type="button" data-sort-key="player">Player${renderSortArrow("player")}</button></th>
-          <th><button class="sort-button" type="button" data-sort-key="score">Total${renderSortArrow("score")}</button></th>
+          <th class="picked-by"><button class="sort-button active" type="button" data-sort-key="owners">Picked By${renderSortLabel("owners")}</button></th>
+          <th><button class="sort-button" type="button" data-sort-key="position">Pos${renderSortLabel("position")}</button></th>
+          <th><button class="sort-button" type="button" data-sort-key="player">Player${renderSortLabel("player")}</button></th>
+          <th><button class="sort-button" type="button" data-sort-key="score">Total${renderSortLabel("score")}</button></th>
           <th>Thru</th>
           <th>Today</th>
           <th>Status</th>
@@ -262,6 +286,7 @@ function renderMastersBoard(entries) {
       <tbody>${rows}</tbody>
     </table>
   `;
+  elements.mastersBoardMobile.innerHTML = mobileCards;
 
   elements.mastersBoard.querySelectorAll("[data-sort-key]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -345,7 +370,7 @@ async function init() {
     });
   } catch (error) {
     console.error(error);
-    [elements.mastersBoard, elements.scoreboard, elements.leaderboard].forEach(renderEmptyState);
+    [elements.mastersBoard, elements.mastersBoardMobile, elements.scoreboard, elements.leaderboard].forEach(renderEmptyState);
     elements.poolLeader.textContent = "Unable to load";
     elements.eventLeader.textContent = "Unable to load";
     elements.boardUpdate.textContent = "Load error";
@@ -359,6 +384,11 @@ function renderSortArrow(key) {
 
 function compareText(a, b) {
   return a.localeCompare(b);
+}
+
+function renderSortLabel(key) {
+  if (boardSort.key !== key) return "";
+  return boardSort.direction === "asc" ? " +" : " -";
 }
 
 function compareBoardPlayers(a, b) {
