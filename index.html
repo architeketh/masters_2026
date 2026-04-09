@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026 Masters Pick Scoreboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">GitHub Pages Ready</p>
+        <h1 id="tournament-name">2026 Masters Pick Scoreboard</h1>
+        <p id="tournament-subtitle" class="hero-subtitle">Live-style pool standings for Masters week.</p>
+        <div class="hero-meta">
+          <span id="tournament-dates">April 9-12, 2026</span>
+          <span id="tournament-venue">Augusta National Golf Club</span>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="hero-stat">
+          <span class="label">Current Leader</span>
+          <strong id="event-leader">Loading...</strong>
+        </div>
+        <div class="hero-stat">
+          <span class="label">Top Pool Entry</span>
+          <strong id="pool-leader">Loading...</strong>
+        </div>
+        <button id="toggle-admin" class="ghost-button" type="button">Update Data</button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="card summary-card">
+        <div>
+          <p class="section-label">Tournament Snapshot</p>
+          <h2>Live scoreboard for your Masters pool</h2>
+        </div>
+        <div class="summary-grid">
+          <article><span class="metric-label">Pool entries</span><strong id="entry-count">0</strong></article>
+          <article><span class="metric-label">Golfers tracked</span><strong id="golfer-count">0</strong></article>
+          <article><span class="metric-label">Scoring format</span><strong id="scoring-format">Best 4 count</strong></article>
+          <article><span class="metric-label">Last update</span><strong id="last-updated">Waiting for data</strong></article>
+        </div>
+      </section>
+
+      <section class="grid two-column">
+        <article class="card">
+          <div class="section-heading">
+            <div>
+              <p class="section-label">Pool Standings</p>
+              <h2>Scoreboard</h2>
+            </div>
+            <p class="muted">Lower score is better after bonus strokes are applied.</p>
+          </div>
+          <div id="scoreboard" class="table-wrap"></div>
+        </article>
+
+        <article class="card">
+          <div class="section-heading">
+            <div>
+              <p class="section-label">Tournament Leaders</p>
+              <h2>Masters leaderboard</h2>
+            </div>
+            <p class="muted">Update this from `data/leaderboard.json` or the admin panel.</p>
+          </div>
+          <div id="leaderboard" class="table-wrap"></div>
+        </article>
+      </section>
+
+      <section class="card">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">Team Cards</p>
+            <h2>Who each player drafted</h2>
+          </div>
+          <p class="muted">Counted golfers are highlighted; bonuses are shown per entry.</p>
+        </div>
+        <div id="team-grid" class="team-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <aside id="admin-panel" class="admin-panel hidden" aria-hidden="true">
+    <div class="admin-header">
+      <div>
+        <p class="section-label">Admin</p>
+        <h2>Load updated leaderboard data</h2>
+      </div>
+      <button id="close-admin" class="ghost-button" type="button">Close</button>
+    </div>
+    <p class="muted admin-copy">Paste a JSON object with a `lastUpdated` field and a `players` array. Saved data stays in this browser until you reset it.</p>
+    <textarea id="leaderboard-input" spellcheck="false" aria-label="Leaderboard JSON"></textarea>
+    <div class="admin-actions">
+      <button id="apply-data" type="button">Apply in browser</button>
+      <button id="reset-data" class="ghost-button" type="button">Reset to repo data</button>
+    </div>
+    <p id="admin-status" class="muted"></p>
+  </aside>
+
+  <template id="empty-state-template">
+    <div class="empty-state">
+      <p>No data available yet.</p>
+    </div>
+  </template>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
