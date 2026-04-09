@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.09.3";
+const APP_VERSION = "2026.04.09.5";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -96,6 +96,13 @@ function formatScore(value) {
   if (value === null || value === undefined || Number.isNaN(value)) return "--";
   if (value === 0) return "E";
   return value > 0 ? `+${value}` : `${value}`;
+}
+
+function getScoreClass(value) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "na";
+  if (value > 0) return "over";
+  if (value < 0) return "under";
+  return "even";
 }
 
 function formatBonus(value) {
@@ -297,18 +304,22 @@ function parseLeaderboardCsv(rawText, currentLeaderboard, picks) {
       scoreToPar: null
     };
 
+    const rawToday = todayColumnIndex >= 0 ? row[todayColumnIndex] : "";
     const rawToPar = toParColumnIndex >= 0 ? row[toParColumnIndex] : "";
-    const normalizedToPar = rawToPar ? rawToPar.toUpperCase() : existing.toPar || "--";
+    const fallbackToPar = rawToPar || ((existing.toPar === "--" || !existing.toPar) ? rawToday : "");
+    const normalizedToPar = fallbackToPar ? fallbackToPar.toUpperCase() : existing.toPar || "--";
 
     updates.set(normalized, {
       ...existing,
       name: draftedName,
       position: positionColumnIndex >= 0 && row[positionColumnIndex] ? row[positionColumnIndex].toUpperCase() : existing.position || "--",
       toPar: normalizedToPar,
-      today: todayColumnIndex >= 0 && row[todayColumnIndex] ? row[todayColumnIndex].toUpperCase() : existing.today || "--",
+      today: rawToday ? rawToday.toUpperCase() : existing.today || "--",
       thru: thruColumnIndex >= 0 && row[thruColumnIndex] ? row[thruColumnIndex].toUpperCase() : existing.thru || "--",
       teeTime: teeTimeColumnIndex >= 0 && row[teeTimeColumnIndex] ? row[teeTimeColumnIndex] : existing.teeTime || "--",
-      status: statusColumnIndex >= 0 && row[statusColumnIndex] ? row[statusColumnIndex] : existing.status || "Updated",
+      status: statusColumnIndex >= 0 && row[statusColumnIndex]
+        ? row[statusColumnIndex]
+        : (rawToday || (thruColumnIndex >= 0 && row[thruColumnIndex])) ? "Live" : existing.status || "Updated",
       madeCut: (statusColumnIndex >= 0 && /cut/i.test(row[statusColumnIndex])) ? false : existing.madeCut,
       isChampion: existing.isChampion || false,
       scoreToPar: parseScoreToPar(normalizedToPar)
@@ -542,7 +553,7 @@ function renderScoreboard(entries) {
     <tr>
       <td><span class="rank-pill">${index + 1}</span></td>
       <td><strong>${escapeHtml(entry.name)}</strong></td>
-      <td><span class="score-pill ${index === 0 ? "leading" : ""}">${entry.hasChampion ? "Winner drafted" : formatScore(entry.rawScore)}</span></td>
+      <td><span class="score-pill ${index === 0 ? "leading" : ""} ${entry.hasChampion ? "" : getScoreClass(entry.rawScore)}">${entry.hasChampion ? "Winner drafted" : formatScore(entry.rawScore)}</span></td>
     </tr>
   `).join("");
 
@@ -583,7 +594,7 @@ function renderLeaderboard(players) {
       <td>${index + 1}</td>
       <td><strong>${escapeHtml(player.name)}</strong></td>
       <td>${escapeHtml(player.position || "--")}</td>
-      <td>${formatScore(player.scoreToPar)}</td>
+      <td><span class="mini-score ${getScoreClass(player.scoreToPar)}">${formatScore(player.scoreToPar)}</span></td>
       <td>${escapeHtml(player.thru || "--")}</td>
     </tr>
   `).join("");
@@ -633,7 +644,7 @@ function renderMastersBoard(entries) {
   elements.boardPlayerCount.textContent = `${boardPlayers.length} drafted golfers`;
 
   const rows = boardPlayers.map((player) => {
-      const totalClass = player.scoreToPar > 0 ? "over" : "under";
+      const totalClass = getScoreClass(player.scoreToPar);
       return `
       <tr>
         <td class="board-owner">${player.owners.map((owner) => `<span class="owner-chip">${escapeHtml(owner)}</span>`).join("")}</td>
@@ -649,7 +660,7 @@ function renderMastersBoard(entries) {
     }).join("");
 
   const mobileCards = boardPlayers.map((player) => {
-    const totalClass = player.scoreToPar > 0 ? "over" : "under";
+    const totalClass = getScoreClass(player.scoreToPar);
     return `
       <article class="mobile-board-card">
         <div class="mobile-board-top">

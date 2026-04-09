@@ -476,6 +476,31 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.5); }
   color: #7f5811;
 }
 
+.score-pill.under,
+.mini-score.under,
+.masters-board tbody td.board-total.under,
+.mobile-board-total.under {
+  color: #b02b2c;
+}
+
+.score-pill.over,
+.mini-score.over,
+.masters-board tbody td.board-total.over,
+.mobile-board-total.over {
+  color: #29573b;
+}
+
+.score-pill.even,
+.mini-score.even,
+.masters-board tbody td.board-total.even,
+.mobile-board-total.even {
+  color: #1f2a1e;
+}
+
+.mini-score {
+  font-weight: 700;
+}
+
 .badge {
   font-size: 0.74rem;
   padding: 7px 10px;
