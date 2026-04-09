@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.09.8";
+const APP_VERSION = "2026.04.09.9";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -588,19 +588,21 @@ function renderScoreboard(entries) {
 }
 
 function renderLeaderboard(players) {
-  const poolLeader = latestEntries[0];
-  if (!poolLeader) {
+  if (!players || !players.length) {
     renderEmptyState(elements.leaderboard);
     return;
   }
 
-  const topFive = poolLeader.picks
-    .filter((pick) => pick.found && hasLiveRoundData(pick))
+  const topFive = players
+    .filter((player) => hasLiveRoundData(player))
     .slice()
     .sort((a, b) => {
       const aScore = a.scoreToPar ?? 999;
       const bScore = b.scoreToPar ?? 999;
       if (aScore !== bScore) return aScore - bScore;
+      const aPos = parsePosition(a.position) ?? 999;
+      const bPos = parsePosition(b.position) ?? 999;
+      if (aPos !== bPos) return aPos - bPos;
       const aThru = a.thru === "F" ? 99 : (Number(a.thru) || 0);
       const bThru = b.thru === "F" ? 99 : (Number(b.thru) || 0);
       if (aThru !== bThru) return bThru - aThru;
@@ -611,7 +613,7 @@ function renderLeaderboard(players) {
   if (!topFive.length) {
     elements.leaderboard.innerHTML = `
       <div class="empty-state">
-        <p>Current pool leader golfers will show here once live round data starts coming in.</p>
+        <p>Top drafted golfers will show here once live round data starts coming in.</p>
       </div>
     `;
     return;
