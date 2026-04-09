@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.09.1";
+const APP_VERSION = "2026.04.09.3";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -561,11 +561,46 @@ function renderScoreboard(entries) {
 }
 
 function renderLeaderboard(players) {
+  const poolLeader = latestEntries[0];
+  if (!poolLeader) {
+    renderEmptyState(elements.leaderboard);
+    return;
+  }
+
+  const topFive = poolLeader.picks
+    .filter((pick) => pick.found)
+    .slice()
+    .sort((a, b) => {
+      const aScore = a.scoreToPar ?? 999;
+      const bScore = b.scoreToPar ?? 999;
+      if (aScore !== bScore) return aScore - bScore;
+      return a.name.localeCompare(b.name);
+    })
+    .slice(0, 5);
+
+  const rows = topFive.map((player, index) => `
+    <tr>
+      <td>${index + 1}</td>
+      <td><strong>${escapeHtml(player.name)}</strong></td>
+      <td>${escapeHtml(player.position || "--")}</td>
+      <td>${formatScore(player.scoreToPar)}</td>
+      <td>${escapeHtml(player.thru || "--")}</td>
+    </tr>
+  `).join("");
+
   elements.leaderboard.innerHTML = `
-    <div class="empty-state">
-      <p>Data comes from <code>data/picks.js</code> and <code>data/leaderboard.js</code> right now.</p>
-      <p>We can swap this to a live golf feed later and keep the same board layout.</p>
-    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>Pos</th>
+          <th>Score</th>
+          <th>Thru</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
   `;
 }
 
@@ -689,7 +724,8 @@ function updateHeader(config, entries, leaderboard) {
 }
 
 function seedAdminEditor(leaderboard) {
-  elements.leaderboardInput.value = JSON.stringify(leaderboard, null, 2);
+  elements.leaderboardInput.value = "";
+  elements.leaderboardInput.placeholder = "Paste JSON, leaderboard rows, or CSV here.";
 }
 
 function renderApp(config, picks, leaderboard) {

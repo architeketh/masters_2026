@@ -309,7 +309,7 @@ button:hover,
 }
 
 .masters-board tbody td.board-total {
-  color: #b02b2c;
+  color: #1f2a1e;
   font-size: 1.35rem;
 }
 
@@ -318,7 +318,7 @@ button:hover,
 }
 
 .masters-board tbody td.board-total.over {
-  color: #b02b2c;
+  color: #29573b;
 }
 
 .masters-board tbody td.board-owner {
@@ -382,7 +382,15 @@ button:hover,
   margin-top: 5px;
   font-size: 1.1rem;
   font-weight: 800;
+  color: #1f2a1e;
+}
+
+.mobile-board-total.under {
   color: #b02b2c;
+}
+
+.mobile-board-total.over {
+  color: #29573b;
 }
 
 .mobile-board-meta {
