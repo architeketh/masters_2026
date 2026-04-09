@@ -1,5 +1,5 @@
 window.MASTERS_LEADERBOARD = {
-  "lastUpdated": "Imported CSV on 4/9/2026, 11:43:25 AM",
+  "lastUpdated": "Imported CSV on 4/9/2026, 11:58:48 AM",
   "players": [
     {
       "name": "Bryson DeChambeau",
