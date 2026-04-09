@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.09.12";
+const APP_VERSION = "2026.04.09.13";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -260,10 +260,16 @@ function buildLookup(players) {
   return lookup;
 }
 
+function detectRowDelimiter(line) {
+  if (line.includes("\t")) return "\t";
+  return ",";
+}
+
 function parseCsvRow(line) {
   const values = [];
   let current = "";
   let inQuotes = false;
+  const delimiter = detectRowDelimiter(line);
 
   for (let index = 0; index < line.length; index += 1) {
     const character = line[index];
@@ -275,10 +281,10 @@ function parseCsvRow(line) {
       } else {
         inQuotes = !inQuotes;
       }
-    } else if (character === "," && !inQuotes) {
-      values.push(current.trim());
-      current = "";
-    } else {
+      } else if (character === delimiter && !inQuotes) {
+        values.push(current.trim());
+        current = "";
+      } else {
       current += character;
     }
   }
