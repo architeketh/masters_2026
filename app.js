@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.08.3";
+const APP_VERSION = "2026.04.08.4";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -420,6 +420,21 @@ function renderEmptyState(target) {
   target.innerHTML = elements.emptyStateTemplate.innerHTML;
 }
 
+function applyResponsiveBoardMode() {
+  const useCompactTable = window.matchMedia("(max-width: 920px)").matches;
+  elements.mastersBoard.style.display = "";
+  elements.mastersBoardMobile.style.display = useCompactTable ? "none" : "";
+
+  const boardTableWrap = elements.mastersBoard;
+  if (useCompactTable) {
+    boardTableWrap.style.display = "block";
+    boardTableWrap.style.overflowX = "auto";
+  } else {
+    boardTableWrap.style.display = "";
+    boardTableWrap.style.overflowX = "";
+  }
+}
+
 function renderScoreboard(entries) {
   if (!entries.length) return renderEmptyState(elements.scoreboard);
 
@@ -536,6 +551,7 @@ function renderMastersBoard(entries) {
     </table>
   `;
   elements.mastersBoardMobile.innerHTML = mobileCards;
+  applyResponsiveBoardMode();
 
   elements.mastersBoard.querySelectorAll("[data-sort-key]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -615,6 +631,7 @@ async function init() {
 
     elements.toggleAdmin.addEventListener("click", () => setAdminOpen(true));
     elements.closeAdmin.addEventListener("click", () => setAdminOpen(false));
+    window.addEventListener("resize", applyResponsiveBoardMode);
 
     elements.applyData.addEventListener("click", () => {
       try {
