@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.08.4";
+const APP_VERSION = "2026.04.09.1";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -27,6 +27,7 @@ const elements = {
   toggleAdmin: document.getElementById("toggle-admin"),
   closeAdmin: document.getElementById("close-admin"),
   applyData: document.getElementById("apply-data"),
+  publishData: document.getElementById("publish-data"),
   resetData: document.getElementById("reset-data"),
   emptyStateTemplate: document.getElementById("empty-state-template")
 };
@@ -47,21 +48,25 @@ async function loadJson(path) {
 }
 
 async function loadData() {
-  if (window.MASTERS_CONFIG && window.MASTERS_PICKS && window.MASTERS_LEADERBOARD) {
-    return {
-      config: window.MASTERS_CONFIG,
-      picks: window.MASTERS_PICKS,
-      leaderboard: window.MASTERS_LEADERBOARD
-    };
+  try {
+    const [config, picks, leaderboard] = await Promise.all([
+      loadJson(DATA_FILES.config),
+      loadJson(DATA_FILES.picks),
+      loadJson(DATA_FILES.leaderboard)
+    ]);
+
+    return { config, picks, leaderboard };
+  } catch (error) {
+    if (window.MASTERS_CONFIG && window.MASTERS_PICKS && window.MASTERS_LEADERBOARD) {
+      return {
+        config: window.MASTERS_CONFIG,
+        picks: window.MASTERS_PICKS,
+        leaderboard: window.MASTERS_LEADERBOARD
+      };
+    }
+
+    throw error;
   }
-
-  const [config, picks, leaderboard] = await Promise.all([
-    loadJson(DATA_FILES.config),
-    loadJson(DATA_FILES.picks),
-    loadJson(DATA_FILES.leaderboard)
-  ]);
-
-  return { config, picks, leaderboard };
 }
 
 function parseScoreToPar(value) {
@@ -461,6 +466,60 @@ function renderEmptyState(target) {
   target.innerHTML = elements.emptyStateTemplate.innerHTML;
 }
 
+function downloadTextFile(filename, contents, mimeType = "application/json;charset=utf-8") {
+  const blob = new Blob([contents], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function buildLeaderboardFileContents() {
+  if (!latestLeaderboard) {
+    throw new Error("No leaderboard data is loaded yet.");
+  }
+
+  const jsonText = `${JSON.stringify(latestLeaderboard, null, 2)}\n`;
+  const jsText = `window.MASTERS_LEADERBOARD = ${JSON.stringify(latestLeaderboard, null, 2)};\n`;
+  return { jsonText, jsText };
+}
+
+async function saveFileWithPicker(suggestedName, contents, mimeType, extension) {
+  const handle = await window.showSaveFilePicker({
+    suggestedName,
+    types: [
+      {
+        description: `${extension.toUpperCase()} files`,
+        accept: {
+          [mimeType]: [extension]
+        }
+      }
+    ]
+  });
+
+  const writable = await handle.createWritable();
+  await writable.write(contents);
+  await writable.close();
+}
+
+async function publishLeaderboardFiles() {
+  const { jsonText, jsText } = buildLeaderboardFileContents();
+
+  if (window.showSaveFilePicker) {
+    await saveFileWithPicker("leaderboard.json", jsonText, "application/json", ".json");
+    await saveFileWithPicker("leaderboard.js", jsText, "text/javascript", ".js");
+    return "Saved leaderboard.json and leaderboard.js. Commit and push both files so mobile devices get the update.";
+  }
+
+  downloadTextFile("leaderboard.json", jsonText, "application/json;charset=utf-8");
+  downloadTextFile("leaderboard.js", jsText, "text/javascript;charset=utf-8");
+  return "Downloaded leaderboard.json and leaderboard.js. Replace both repo files, then commit and push.";
+}
+
 function applyResponsiveBoardMode() {
   const useCompactTable = window.matchMedia("(max-width: 920px)").matches;
   elements.mastersBoard.style.display = "";
@@ -685,6 +744,15 @@ async function init() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
         renderApp(config, picks, parsed);
         elements.adminStatus.textContent = "Leaderboard update applied in this browser.";
+      } catch (error) {
+        elements.adminStatus.textContent = error.message;
+      }
+    });
+
+    elements.publishData.addEventListener("click", async () => {
+      try {
+        const message = await publishLeaderboardFiles();
+        elements.adminStatus.textContent = message;
       } catch (error) {
         elements.adminStatus.textContent = error.message;
       }
