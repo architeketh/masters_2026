@@ -50,7 +50,10 @@
           </div>
           <div id="masters-board" class="board-table-wrap"></div>
           <div id="masters-board-mobile" class="mobile-board-list"></div>
-          <div class="board-footer">Augusta-inspired pool leaderboard</div>
+          <div class="board-footer">
+            <span>Augusta-inspired pool leaderboard</span>
+            <span id="board-version">Build --</span>
+          </div>
         </div>
       </section>
 
@@ -88,7 +91,7 @@
       </div>
       <button id="close-admin" class="ghost-button" type="button">Close</button>
     </div>
-    <p class="muted admin-copy">Paste JSON, pasted leaderboard rows, or a tee-sheet CSV with <code>PLAYER</code> and <code>TEE TIME</code>. The importer will match your 21 drafted golfers and save the update in this browser.</p>
+    <p class="muted admin-copy">Paste JSON, pasted leaderboard rows, or a CSV with <code>PLAYER</code> plus any of <code>TEE TIME</code>, <code>POS</code>, <code>TO PAR</code>, <code>TODAY</code>, <code>THRU</code>, or <code>STATUS</code>. The importer will match your 21 drafted golfers and save the update in this browser.</p>
     <label class="file-picker" for="csv-file-input">
       <span>Import CSV file</span>
       <input id="csv-file-input" type="file" accept=".csv,text/csv">

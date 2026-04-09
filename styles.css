@@ -360,6 +360,17 @@ button:hover,
   font-weight: 800;
 }
 
+.mobile-board-tee {
+  margin-top: 8px;
+  color: #0f6a3b;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.mobile-board-tee strong {
+  margin-right: 6px;
+}
+
 .mobile-board-total {
   margin-top: 8px;
   font-size: 1.5rem;

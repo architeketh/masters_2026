@@ -1,4 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
+const APP_VERSION = "2026.04.08.3";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -14,6 +15,7 @@ const elements = {
   poolLeader: document.getElementById("pool-leader"),
   boardUpdate: document.getElementById("board-update"),
   boardPlayerCount: document.getElementById("board-player-count"),
+  boardVersion: document.getElementById("board-version"),
   mastersBoard: document.getElementById("masters-board"),
   mastersBoardMobile: document.getElementById("masters-board-mobile"),
   scoreboard: document.getElementById("scoreboard"),
@@ -101,6 +103,18 @@ function parsePosition(value) {
   return match ? Number(match[0]) : null;
 }
 
+function parseTeeTime(value) {
+  if (!value || value === "--") return null;
+  const match = String(value).trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+
+  let hours = Number(match[1]) % 12;
+  const minutes = Number(match[2]);
+  const meridiem = match[3].toUpperCase();
+  if (meridiem === "PM") hours += 12;
+  return (hours * 60) + minutes;
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -173,7 +187,11 @@ function parseCsvRow(line) {
   return values.map((value) => value.replace(/^"|"$/g, "").trim());
 }
 
-function parseTeeSheetCsv(rawText, currentLeaderboard, picks) {
+function findColumnIndex(header, names) {
+  return header.findIndex((cell) => names.includes(cell));
+}
+
+function parseLeaderboardCsv(rawText, currentLeaderboard, picks) {
   const lines = rawText
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -184,11 +202,27 @@ function parseTeeSheetCsv(rawText, currentLeaderboard, picks) {
   }
 
   const header = parseCsvRow(lines[0]).map((cell) => cell.toUpperCase());
-  const playerColumnIndex = header.findIndex((cell) => cell === "PLAYER");
-  const teeTimeColumnIndex = header.findIndex((cell) => cell === "TEE TIME" || cell === "TEE_TIME" || cell === "TEETIME");
+  const playerColumnIndex = findColumnIndex(header, ["PLAYER", "NAME"]);
+  const teeTimeColumnIndex = findColumnIndex(header, ["TEE TIME", "TEE_TIME", "TEETIME"]);
+  const positionColumnIndex = findColumnIndex(header, ["POS", "POSITION", "PLACE"]);
+  const toParColumnIndex = findColumnIndex(header, ["TO PAR", "TO_PAR", "TOPAR", "TOTAL"]);
+  const todayColumnIndex = findColumnIndex(header, ["TODAY", "ROUND", "R1", "ROUND 1"]);
+  const thruColumnIndex = findColumnIndex(header, ["THRU", "THROUGH"]);
+  const statusColumnIndex = findColumnIndex(header, ["STATUS"]);
 
-  if (playerColumnIndex === -1 || teeTimeColumnIndex === -1) {
-    throw new Error("CSV must include PLAYER and TEE TIME columns.");
+  if (playerColumnIndex === -1) {
+    throw new Error("CSV must include a PLAYER column.");
+  }
+
+  if (
+    teeTimeColumnIndex === -1 &&
+    positionColumnIndex === -1 &&
+    toParColumnIndex === -1 &&
+    todayColumnIndex === -1 &&
+    thruColumnIndex === -1 &&
+    statusColumnIndex === -1
+  ) {
+    throw new Error("CSV must include tee time or score columns to import.");
   }
 
   const draftedPlayers = collectDraftedPlayers(picks);
@@ -196,41 +230,62 @@ function parseTeeSheetCsv(rawText, currentLeaderboard, picks) {
   const draftedByName = new Map(
     draftedPlayers.map((name) => [normalizeName(name), name])
   );
-  const teeTimes = new Map();
+  const updates = new Map();
 
   lines.slice(1).forEach((line) => {
     const row = parseCsvRow(line);
     const rawPlayerName = row[playerColumnIndex];
-    const teeTime = row[teeTimeColumnIndex];
-    if (!rawPlayerName || !teeTime) return;
+    if (!rawPlayerName) return;
 
     const normalized = normalizeName(rawPlayerName);
     const draftedName = draftedByName.get(normalized);
     if (!draftedName) return;
-    teeTimes.set(normalized, teeTime);
+
+    const existing = currentLookup.get(normalized) || {
+      name: draftedName,
+      position: "--",
+      toPar: "--",
+      today: "--",
+      thru: "--",
+      teeTime: "--",
+      status: "Updated",
+      madeCut: false,
+      isChampion: false,
+      scoreToPar: null
+    };
+
+    const rawToPar = toParColumnIndex >= 0 ? row[toParColumnIndex] : "";
+    const normalizedToPar = rawToPar ? rawToPar.toUpperCase() : existing.toPar || "--";
+
+    updates.set(normalized, {
+      ...existing,
+      name: draftedName,
+      position: positionColumnIndex >= 0 && row[positionColumnIndex] ? row[positionColumnIndex].toUpperCase() : existing.position || "--",
+      toPar: normalizedToPar,
+      today: todayColumnIndex >= 0 && row[todayColumnIndex] ? row[todayColumnIndex].toUpperCase() : existing.today || "--",
+      thru: thruColumnIndex >= 0 && row[thruColumnIndex] ? row[thruColumnIndex].toUpperCase() : existing.thru || "--",
+      teeTime: teeTimeColumnIndex >= 0 && row[teeTimeColumnIndex] ? row[teeTimeColumnIndex] : existing.teeTime || "--",
+      status: statusColumnIndex >= 0 && row[statusColumnIndex] ? row[statusColumnIndex] : existing.status || "Updated",
+      madeCut: (statusColumnIndex >= 0 && /cut/i.test(row[statusColumnIndex])) ? false : existing.madeCut,
+      isChampion: existing.isChampion || false,
+      scoreToPar: parseScoreToPar(normalizedToPar)
+    });
   });
 
-  if (!teeTimes.size) {
+  if (!updates.size) {
     throw new Error("No drafted golfers were recognized in the CSV.");
   }
 
   const mergedPlayers = draftedPlayers.map((name) => {
     const normalized = normalizeName(name);
-    const existing = currentLookup.get(normalized);
-    const teeTime = teeTimes.get(normalized) || existing?.teeTime || "--";
-
-    return existing ? {
-      ...existing,
-      name,
-      teeTime
-    } : {
+    return updates.get(normalized) || currentLookup.get(normalized) || {
       name,
       position: "--",
       toPar: "--",
       today: "--",
       thru: "--",
-      teeTime,
-      status: "Tee time loaded",
+      teeTime: "--",
+      status: "Not found",
       madeCut: false,
       isChampion: false,
       scoreToPar: null
@@ -238,7 +293,7 @@ function parseTeeSheetCsv(rawText, currentLeaderboard, picks) {
   });
 
   return {
-    lastUpdated: `Imported tee sheet on ${new Date().toLocaleString()}`,
+    lastUpdated: `Imported CSV on ${new Date().toLocaleString()}`,
     players: mergedPlayers
   };
 }
@@ -452,9 +507,9 @@ function renderMastersBoard(entries) {
           <div class="mobile-board-pos">${escapeHtml(player.position || "--")}</div>
         </div>
         <div class="mobile-board-player">${escapeHtml(player.name)}</div>
+        <div class="mobile-board-tee"><strong>Tee Time</strong> ${escapeHtml(player.teeTime || "--")}</div>
         <div class="mobile-board-total ${totalClass}">${formatScore(player.scoreToPar)}</div>
         <div class="mobile-board-meta">
-          <span><strong>Tee</strong> ${escapeHtml(player.teeTime || "--")}</span>
           <span><strong>Thru</strong> ${escapeHtml(player.thru || "--")}</span>
           <span><strong>Today</strong> ${escapeHtml(player.today || "--")}</span>
           <span><strong>Status</strong> ${escapeHtml(player.status || (player.found ? "Active" : "Not found"))}</span>
@@ -471,7 +526,7 @@ function renderMastersBoard(entries) {
           <th><button class="sort-button" type="button" data-sort-key="position">Pos${renderSortLabel("position")}</button></th>
           <th><button class="sort-button" type="button" data-sort-key="player">Player${renderSortLabel("player")}</button></th>
           <th><button class="sort-button" type="button" data-sort-key="score">Total${renderSortLabel("score")}</button></th>
-          <th>Tee Time</th>
+          <th><button class="sort-button" type="button" data-sort-key="teeTime">Tee Time${renderSortLabel("teeTime")}</button></th>
           <th>Thru</th>
           <th>Today</th>
           <th>Status</th>
@@ -502,6 +557,7 @@ function updateHeader(config, entries, leaderboard) {
   elements.tournamentDates.textContent = config.tournament.dates;
   elements.tournamentVenue.textContent = config.tournament.venue;
   elements.boardUpdate.textContent = leaderboard.lastUpdated || "Waiting for data";
+  elements.boardVersion.textContent = `Build ${APP_VERSION}`;
 
   const eventLeader = leaderboard.players
     .slice()
@@ -541,8 +597,8 @@ function parseAdminInput(rawInput, currentLeaderboard, picks) {
     return validateLeaderboardData(JSON.parse(rawInput));
   }
 
-  if (/PLAYER/i.test(rawInput) && /TEE\s*TIME/i.test(rawInput)) {
-    return parseTeeSheetCsv(rawInput, currentLeaderboard, picks);
+  if (/PLAYER|NAME/i.test(rawInput) && /(TEE\s*TIME|POS|POSITION|TO\s*PAR|THRU|TODAY|STATUS)/i.test(rawInput)) {
+    return parseLeaderboardCsv(rawInput, currentLeaderboard, picks);
   }
 
   return parseRawLeaderboardInput(rawInput, currentLeaderboard, picks);
@@ -580,11 +636,11 @@ async function init() {
 
         const csvText = await file.text();
         elements.leaderboardInput.value = csvText;
-        const parsed = parseTeeSheetCsv(csvText, latestLeaderboard || repoLeaderboard, latestPicks || picks);
+        const parsed = parseLeaderboardCsv(csvText, latestLeaderboard || repoLeaderboard, latestPicks || picks);
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
         renderApp(config, picks, parsed);
-        elements.adminStatus.textContent = `Imported tee-sheet CSV from ${file.name}.`;
+        elements.adminStatus.textContent = `Imported CSV update from ${file.name}.`;
         event.target.value = "";
       } catch (error) {
         elements.adminStatus.textContent = error.message;
@@ -623,6 +679,9 @@ function compareBoardPlayers(a, b) {
   } else if (boardSort.key === "position") {
     result = (parsePosition(a.position) ?? 999) - (parsePosition(b.position) ?? 999);
     if (result === 0) result = (a.scoreToPar ?? 999) - (b.scoreToPar ?? 999);
+  } else if (boardSort.key === "teeTime") {
+    result = (parseTeeTime(a.teeTime) ?? 9999) - (parseTeeTime(b.teeTime) ?? 9999);
+    if (result === 0) result = compareText(a.name, b.name);
   } else if (boardSort.key === "player") {
     result = compareText(a.name, b.name);
   } else {
