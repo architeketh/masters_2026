@@ -141,7 +141,45 @@ function validateLeaderboardData(payload) {
   if (!payload || typeof payload !== "object" || !Array.isArray(payload.players)) {
     throw new Error("Leaderboard JSON must include a players array.");
   }
-  return payload;
+  return normalizeLeaderboardData(payload);
+}
+
+function isCompletedTournamentStatus(player) {
+  const status = String(player.status || "").toLowerCase();
+  return status.includes("final") ||
+    status.includes("complete") ||
+    status.includes("completed") ||
+    status.includes("champion") ||
+    status.includes("round 4");
+}
+
+function normalizeLeaderboardData(payload) {
+  const players = payload.players.map((player) => ({
+    ...player,
+    isChampion: Boolean(player.isChampion)
+  }));
+
+  const explicitChampions = players.filter((player) => player.isChampion);
+  if (explicitChampions.length === 1) {
+    return { ...payload, players };
+  }
+
+  const inferredChampions = players.filter((player) => (
+    parsePosition(player.position) === 1 && isCompletedTournamentStatus(player)
+  ));
+
+  if (inferredChampions.length === 1) {
+    const championName = normalizeName(inferredChampions[0].name);
+    return {
+      ...payload,
+      players: players.map((player) => ({
+        ...player,
+        isChampion: normalizeName(player.name) === championName
+      }))
+    };
+  }
+
+  return { ...payload, players };
 }
 
 function collectDraftedPlayers(picks) {
@@ -404,11 +442,14 @@ function computeEntry(entry, lookup, scoring) {
     picks,
     championCount,
     topTenCount,
-    madeCutCount
+    madeCutCount,
+    hasChampion: championCount > 0
   };
 }
 
 function compareEntries(a, b) {
+  if (a.hasChampion && !b.hasChampion) return -1;
+  if (!a.hasChampion && b.hasChampion) return 1;
   if (a.adjustedScore === null) return 1;
   if (b.adjustedScore === null) return -1;
   if (a.adjustedScore !== b.adjustedScore) return a.adjustedScore - b.adjustedScore;
@@ -442,7 +483,7 @@ function renderScoreboard(entries) {
     <tr>
       <td><span class="rank-pill">${index + 1}</span></td>
       <td><strong>${escapeHtml(entry.name)}</strong></td>
-      <td><span class="score-pill ${index === 0 ? "leading" : ""}">${formatScore(entry.rawScore)}</span></td>
+      <td><span class="score-pill ${index === 0 ? "leading" : ""}">${entry.hasChampion ? "Winner drafted" : formatScore(entry.rawScore)}</span></td>
     </tr>
   `).join("");
 
@@ -452,7 +493,7 @@ function renderScoreboard(entries) {
         <tr>
           <th>Rank</th>
           <th>Entry</th>
-          <th>Best 4 Total</th>
+          <th>Result</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -583,7 +624,9 @@ function updateHeader(config, entries, leaderboard) {
     .join(" / ");
 
   elements.eventLeader.textContent = eventLeader || "No leaderboard data";
-  elements.poolLeader.textContent = entries[0] ? `${entries[0].name} (${formatScore(entries[0].rawScore)})` : "No pool entries";
+  elements.poolLeader.textContent = entries[0]
+    ? `${entries[0].name} (${entries[0].hasChampion ? "winner drafted" : formatScore(entries[0].rawScore)})`
+    : "No pool entries";
 }
 
 function seedAdminEditor(leaderboard) {
@@ -591,16 +634,17 @@ function seedAdminEditor(leaderboard) {
 }
 
 function renderApp(config, picks, leaderboard) {
-  const lookup = buildLookup(leaderboard.players);
+  const normalizedLeaderboard = normalizeLeaderboardData(leaderboard);
+  const lookup = buildLookup(normalizedLeaderboard.players);
   const entries = picks.entries.map((entry) => computeEntry(entry, lookup, config.scoring)).sort(compareEntries);
   latestEntries = entries;
   latestPicks = picks;
-  latestLeaderboard = leaderboard;
-  updateHeader(config, entries, leaderboard);
+  latestLeaderboard = normalizedLeaderboard;
+  updateHeader(config, entries, normalizedLeaderboard);
   renderMastersBoard(entries);
   renderScoreboard(entries);
-  renderLeaderboard(leaderboard.players);
-  seedAdminEditor(leaderboard);
+  renderLeaderboard(normalizedLeaderboard.players);
+  seedAdminEditor(normalizedLeaderboard);
 }
 
 function setAdminOpen(isOpen) {
