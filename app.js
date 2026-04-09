@@ -793,7 +793,7 @@ function parseAdminInput(rawInput, currentLeaderboard, picks) {
     return validateLeaderboardData(JSON.parse(rawInput));
   }
 
-  if (/PLAYER|NAME/i.test(rawInput) && /(TEE\s*TIME|POS|POSITION|TO\s*PAR|THRU|TODAY|STATUS)/i.test(rawInput)) {
+  if (/PLAYER|NAME/i.test(rawInput) && /(TEE\s*TIME|POS|POSITION|TO\s*PAR|SCORE|TOTAL|THRU|TODAY|STATUS|R1|ROUND\s*1)/i.test(rawInput)) {
     return parseLeaderboardCsv(rawInput, currentLeaderboard, picks);
   }
 
