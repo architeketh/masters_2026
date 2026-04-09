@@ -1,5 +1,5 @@
 const STORAGE_KEY = "masters-2026-custom-leaderboard";
-const APP_VERSION = "2026.04.09.9";
+const APP_VERSION = "2026.04.09.10";
 const DATA_FILES = {
   config: "./data/config.json",
   picks: "./data/picks.json",
@@ -29,7 +29,6 @@ const elements = {
   closeAdmin: document.getElementById("close-admin"),
   applyData: document.getElementById("apply-data"),
   publishData: document.getElementById("publish-data"),
-  resetData: document.getElementById("reset-data"),
   emptyStateTemplate: document.getElementById("empty-state-template")
 };
 
@@ -102,6 +101,35 @@ function formatScore(value) {
 function formatLastUpdated(value) {
   if (!value) return "waiting for data";
   return value;
+}
+
+function buildTournamentLeaderTextFromRows(rows, header) {
+  const playerColumnIndex = findColumnIndex(header, ["PLAYER", "NAME"]);
+  const positionColumnIndex = findColumnIndex(header, ["POS", "POSITION", "PLACE"]);
+  const toParColumnIndex = findColumnIndex(header, ["TO PAR", "TO_PAR", "TOPAR", "SCORE", "TOTAL"]);
+
+  if (playerColumnIndex === -1 || toParColumnIndex === -1) return null;
+
+  const parsedRows = rows
+    .map((row) => {
+      const name = row[playerColumnIndex];
+      const toPar = row[toParColumnIndex];
+      const position = positionColumnIndex >= 0 ? row[positionColumnIndex] : "";
+      const scoreToPar = parseScoreToPar(toPar);
+      return {
+        name,
+        position,
+        toPar,
+        scoreToPar
+      };
+    })
+    .filter((row) => row.name && typeof row.scoreToPar === "number");
+
+  if (!parsedRows.length) return null;
+
+  const bestScore = Math.min(...parsedRows.map((row) => row.scoreToPar));
+  const leaders = parsedRows.filter((row) => row.scoreToPar === bestScore).slice(0, 3);
+  return leaders.map((row) => `${row.name} (${formatScore(row.scoreToPar)})`).join(" / ");
 }
 function getScoreClass(value) {
   if (value === null || value === undefined || Number.isNaN(value)) return "na";
@@ -268,6 +296,7 @@ function parseLeaderboardCsv(rawText, currentLeaderboard, picks) {
   }
 
   const header = parseCsvRow(lines[0]).map((cell) => cell.toUpperCase());
+  const csvRows = lines.slice(1).map(parseCsvRow);
   const playerColumnIndex = findColumnIndex(header, ["PLAYER", "NAME"]);
   const teeTimeColumnIndex = findColumnIndex(header, ["TEE TIME", "TEE_TIME", "TEETIME"]);
   const positionColumnIndex = findColumnIndex(header, ["POS", "POSITION", "PLACE"]);
@@ -298,8 +327,7 @@ function parseLeaderboardCsv(rawText, currentLeaderboard, picks) {
   );
   const updates = new Map();
 
-  lines.slice(1).forEach((line) => {
-    const row = parseCsvRow(line);
+  csvRows.forEach((row) => {
     const rawPlayerName = row[playerColumnIndex];
     if (!rawPlayerName) return;
 
@@ -346,6 +374,8 @@ function parseLeaderboardCsv(rawText, currentLeaderboard, picks) {
     throw new Error("No drafted golfers were recognized in the CSV.");
   }
 
+  const tournamentLeaderText = buildTournamentLeaderTextFromRows(csvRows, header);
+
   const mergedPlayers = draftedPlayers.map((name) => {
     const normalized = normalizeName(name);
     return updates.get(normalized) || currentLookup.get(normalized) || {
@@ -364,6 +394,7 @@ function parseLeaderboardCsv(rawText, currentLeaderboard, picks) {
 
   return {
     lastUpdated: `Imported CSV on ${new Date().toLocaleString()}`,
+    tournamentLeaderText,
     players: mergedPlayers
   };
 }
@@ -753,14 +784,14 @@ function updateHeader(config, entries, leaderboard) {
   elements.scoresLastUpdated.textContent = lastUpdatedText;
   elements.boardVersion.textContent = `Build ${APP_VERSION}`;
 
-  const eventLeader = leaderboard.players
+  const fallbackLeader = leaderboard.players
     .slice()
     .sort((a, b) => (parseScoreToPar(a.toPar) ?? 999) - (parseScoreToPar(b.toPar) ?? 999))
     .slice(0, 3)
     .map((player) => `${player.name} (${formatScore(parseScoreToPar(player.toPar))})`)
     .join(" / ");
 
-  elements.eventLeader.textContent = eventLeader || "No leaderboard data";
+  elements.eventLeader.textContent = leaderboard.tournamentLeaderText || fallbackLeader || "No leaderboard data";
   elements.poolLeader.textContent = entries[0]
     ? `${entries[0].name} (${entries[0].hasChampion ? "winner drafted" : formatScore(entries[0].rawScore)})`
     : "No pool entries";
@@ -853,13 +884,6 @@ async function init() {
       } catch (error) {
         elements.adminStatus.textContent = error.message;
       }
-    });
-
-    elements.resetData.addEventListener("click", () => {
-      localStorage.removeItem(STORAGE_KEY);
-      renderApp(config, picks, repoLeaderboard);
-      elements.csvFileInput.value = "";
-      elements.adminStatus.textContent = "Reset to the leaderboard stored in the repository.";
     });
   } catch (error) {
     console.error(error);
