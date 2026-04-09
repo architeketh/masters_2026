@@ -62,7 +62,6 @@ PLAYER,TEE TIME,POS,TO PAR,TODAY,THRU,STATUS
 Rory McIlroy,10:31 AM,1,-11,-3,F,Final
 Scottie Scheffler,1:44 PM,T2,-9,-2,F,Final
 ```
-
 ## Leaderboard JSON format
 
 ```json
