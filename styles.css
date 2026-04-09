@@ -53,23 +53,25 @@ body::before {
 
 .hero {
   display: grid;
-  grid-template-columns: 1.7fr 1fr;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1.25fr) auto minmax(280px, 0.9fr);
+  grid-template-areas: "copy logo panel";
+  gap: 28px;
   border-radius: 32px;
   padding: 32px;
-  position: relative;
+  align-items: start;
 }
 
 .hero-logo-wrap {
-  position: absolute;
-  top: 22px;
-  left: 22px;
-  width: 88px;
-  height: 88px;
+  grid-area: logo;
+  position: relative;
+  width: 308px;
+  height: 308px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 24px;
+  align-self: start;
+  justify-self: center;
+  border-radius: 28px;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(31, 42, 30, 0.08);
   box-shadow: 0 12px 28px rgba(17, 17, 17, 0.08);
@@ -119,7 +121,8 @@ h2 { font-size: clamp(1.75rem, 4vw, 2.3rem); }
 }
 
 .hero-copy {
-  padding-left: 110px;
+  grid-area: copy;
+  padding-left: 0;
 }
 
 .hero-meta {
@@ -142,6 +145,7 @@ h2 { font-size: clamp(1.75rem, 4vw, 2.3rem); }
 }
 
 .hero-panel {
+  grid-area: panel;
   display: grid;
   gap: 16px;
   align-content: start;
@@ -309,16 +313,40 @@ button:hover,
 }
 
 .masters-board tbody td.board-total {
-  color: #b02b2c;
+  color: #1f2a1e;
   font-size: 1.35rem;
 }
 
-.masters-board tbody td.board-total.under {
-  color: #b02b2c;
+.board-score-pill {
+  display: inline-flex;
+  min-width: 64px;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+  border: 1px solid rgba(31, 42, 30, 0.12);
+  background: rgba(31, 42, 30, 0.06);
+  color: #1f2a1e;
 }
 
-.masters-board tbody td.board-total.over {
+.board-score-pill.under {
   color: #b02b2c;
+  background: rgba(176, 43, 44, 0.14);
+  border-color: rgba(176, 43, 44, 0.26);
+}
+
+.board-score-pill.over {
+  color: #29573b;
+  background: rgba(41, 87, 59, 0.16);
+  border-color: rgba(41, 87, 59, 0.28);
+}
+
+.board-score-pill.even {
+  color: #1f2a1e;
+  background: rgba(31, 42, 30, 0.08);
+  border-color: rgba(31, 42, 30, 0.18);
 }
 
 .masters-board tbody td.board-owner {
@@ -382,7 +410,15 @@ button:hover,
   margin-top: 5px;
   font-size: 1.1rem;
   font-weight: 800;
+  color: #1f2a1e;
+}
+
+.mobile-board-total.under {
   color: #b02b2c;
+}
+
+.mobile-board-total.over {
+  color: #29573b;
 }
 
 .mobile-board-meta {
@@ -468,6 +504,57 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.5); }
   color: #7f5811;
 }
 
+.score-pill.under,
+.mini-score.under,
+.mobile-board-total.under {
+  color: #b02b2c;
+  background: rgba(176, 43, 44, 0.12);
+  border: 1px solid rgba(176, 43, 44, 0.2);
+}
+
+.score-pill.leading.under {
+  color: #b02b2c;
+  background: linear-gradient(180deg, #f7ead0, #f2d8d8);
+  border: 1px solid rgba(176, 43, 44, 0.22);
+}
+
+.score-pill.over,
+.mini-score.over,
+.mobile-board-total.over {
+  color: #29573b;
+  background: rgba(41, 87, 59, 0.14);
+  border: 1px solid rgba(41, 87, 59, 0.22);
+}
+
+.score-pill.leading.over {
+  color: #29573b;
+  background: linear-gradient(180deg, #f7ead0, #dbe9de);
+  border: 1px solid rgba(41, 87, 59, 0.24);
+}
+
+.score-pill.even,
+.mini-score.even,
+.mobile-board-total.even {
+  color: #1f2a1e;
+  background: rgba(31, 42, 30, 0.08);
+  border: 1px solid rgba(31, 42, 30, 0.16);
+}
+
+.score-pill.leading.even {
+  color: #1f2a1e;
+  background: linear-gradient(180deg, #f7ead0, #ece6d8);
+  border: 1px solid rgba(31, 42, 30, 0.18);
+}
+
+.mini-score {
+  display: inline-flex;
+  min-width: 40px;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
 .badge {
   font-size: 0.74rem;
   padding: 7px 10px;
@@ -546,6 +633,14 @@ textarea {
   .hero,
   .two-column { grid-template-columns: 1fr; }
 
+  .hero {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "logo"
+      "copy"
+      "panel";
+  }
+
   .board-meta-row {
     flex-direction: column;
   }
@@ -597,15 +692,13 @@ textarea {
   }
 
   .hero-logo-wrap {
-    width: 64px;
-    height: 64px;
-    top: 16px;
-    left: 16px;
+    width: 210px;
+    height: 210px;
     border-radius: 18px;
   }
 
   .hero-copy {
-    padding-left: 76px;
+    padding-left: 0;
   }
 
   .hero-panel {

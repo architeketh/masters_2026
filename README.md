@@ -44,6 +44,12 @@ Static scoreboard site built for GitHub Pages. No build step, no backend, and al
 
 That stages the two leaderboard files, creates a commit, and pushes to your current Git branch.
 
+For a simpler Windows shortcut, you can also double-click:
+
+```text
+publish-scoreboard.bat
+```
+
 ## CSV format
 
 The importer recognizes `PLAYER` plus any of these columns:

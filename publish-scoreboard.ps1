@@ -28,8 +28,15 @@ $commitMessage = "Update Masters leaderboard data ($timestamp)"
 
 Write-Host "Staging leaderboard files..."
 git -C $repoRoot add -- "data/leaderboard.json" "data/leaderboard.js"
+if ($LASTEXITCODE -ne 0) {
+  throw "Git add failed."
+}
 
 $status = git -C $repoRoot diff --cached --name-only
+if ($LASTEXITCODE -ne 0) {
+  throw "Unable to inspect staged leaderboard files."
+}
+
 if (-not $status) {
   Write-Host "No staged changes found in leaderboard files. Nothing to publish."
   exit 0
@@ -37,9 +44,15 @@ if (-not $status) {
 
 Write-Host "Creating commit: $commitMessage"
 git -C $repoRoot commit -m $commitMessage
+if ($LASTEXITCODE -ne 0) {
+  throw "Git commit failed."
+}
 
 Write-Host "Pushing to origin/$branch ..."
 git -C $repoRoot push origin $branch
+if ($LASTEXITCODE -ne 0) {
+  throw "Git push failed. Run 'git pull origin $branch --no-rebase' to merge remote changes, then rerun publish."
+}
 
 Write-Host ""
 Write-Host "Publish complete."
