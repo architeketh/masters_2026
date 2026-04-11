@@ -1,6 +1,6 @@
 window.MASTERS_LEADERBOARD = {
-  "lastUpdated": "Imported CSV on 4/11/2026, 3:33:32 PM",
-  "tournamentLeaderText": "Rory McIlroy (-12)",
+  "lastUpdated": "Imported CSV on 4/11/2026, 6:42:49 PM",
+  "tournamentLeaderText": "Cameron Young (-11) / Rory McIlroy (-11)",
   "players": [
     {
       "name": "Bryson DeChambeau",
@@ -28,22 +28,22 @@ window.MASTERS_LEADERBOARD = {
     },
     {
       "name": "Justin Rose",
-      "position": "T6",
-      "toPar": "-7",
-      "today": "-2",
-      "thru": "8",
+      "position": "T5",
+      "toPar": "-8",
+      "today": "-3",
+      "thru": "F",
       "teeTime": "2:39 PM",
       "status": "Live",
       "madeCut": false,
       "isChampion": false,
-      "scoreToPar": -7
+      "scoreToPar": -8
     },
     {
       "name": "Matt Fitzpatrick",
       "position": "T21",
       "toPar": "-3",
       "today": "-2",
-      "thru": "16",
+      "thru": "F",
       "teeTime": "12:49 PM",
       "status": "Live",
       "madeCut": false,
@@ -76,10 +76,10 @@ window.MASTERS_LEADERBOARD = {
     },
     {
       "name": "Shane Lowry",
-      "position": "T2",
+      "position": "4",
       "toPar": "-9",
       "today": "-4",
-      "thru": "8",
+      "thru": "F",
       "teeTime": "2:28 PM",
       "status": "Live",
       "madeCut": false,
@@ -88,7 +88,7 @@ window.MASTERS_LEADERBOARD = {
     },
     {
       "name": "Scottie Scheffler",
-      "position": "T6",
+      "position": "T7",
       "toPar": "-7",
       "today": "-7",
       "thru": "F",
@@ -100,15 +100,15 @@ window.MASTERS_LEADERBOARD = {
     },
     {
       "name": "Cam Young",
-      "position": "T2",
-      "toPar": "-9",
-      "today": "-5",
-      "thru": "11",
+      "position": "T1",
+      "toPar": "-11",
+      "today": "-7",
+      "thru": "F",
       "teeTime": "1:55 PM",
       "status": "Live",
       "madeCut": false,
       "isChampion": false,
-      "scoreToPar": -9
+      "scoreToPar": -11
     },
     {
       "name": "Ludvig Aberg",
@@ -124,7 +124,7 @@ window.MASTERS_LEADERBOARD = {
     },
     {
       "name": "Jordan Spieth",
-      "position": "T32",
+      "position": "T33",
       "toPar": "-1",
       "today": "-2",
       "thru": "F",
@@ -136,15 +136,15 @@ window.MASTERS_LEADERBOARD = {
     },
     {
       "name": "Brooks Koepka",
-      "position": "T32",
-      "toPar": "-1",
-      "today": "+2",
-      "thru": "12",
+      "position": "T15",
+      "toPar": "-4",
+      "today": "-1",
+      "thru": "F",
       "teeTime": "1:33 PM",
       "status": "Live",
       "madeCut": false,
       "isChampion": false,
-      "scoreToPar": -1
+      "scoreToPar": -4
     },
     {
       "name": "Justin Thomas",
@@ -172,22 +172,22 @@ window.MASTERS_LEADERBOARD = {
     },
     {
       "name": "Rory McIlroy",
-      "position": "1",
-      "toPar": "-12",
-      "today": "E",
-      "thru": "7",
+      "position": "T1",
+      "toPar": "-11",
+      "today": "+1",
+      "thru": "F",
       "teeTime": "2:50 PM",
       "status": "Live",
       "madeCut": false,
       "isChampion": false,
-      "scoreToPar": -12
+      "scoreToPar": -11
     },
     {
       "name": "Xander Schauffele",
-      "position": "T17",
+      "position": "T15",
       "toPar": "-4",
       "today": "-2",
-      "thru": "14",
+      "thru": "F",
       "teeTime": "1:11 PM",
       "status": "Live",
       "madeCut": false,
@@ -196,19 +196,19 @@ window.MASTERS_LEADERBOARD = {
     },
     {
       "name": "Tommy Fleetwood",
-      "position": "T12",
-      "toPar": "-5",
-      "today": "E",
-      "thru": "8",
+      "position": "T15",
+      "toPar": "-4",
+      "today": "+1",
+      "thru": "F",
       "teeTime": "2:28 PM",
       "status": "Live",
       "madeCut": false,
       "isChampion": false,
-      "scoreToPar": -5
+      "scoreToPar": -4
     },
     {
       "name": "Patrick Cantlay",
-      "position": "T10",
+      "position": "T9",
       "toPar": "-6",
       "today": "-6",
       "thru": "F",
@@ -223,7 +223,7 @@ window.MASTERS_LEADERBOARD = {
       "position": "T12",
       "toPar": "-5",
       "today": "-3",
-      "thru": "14",
+      "thru": "F",
       "teeTime": "1:11 PM",
       "status": "Live",
       "madeCut": false,
@@ -232,22 +232,22 @@ window.MASTERS_LEADERBOARD = {
     },
     {
       "name": "Hideki Matsuyama",
-      "position": "T21",
-      "toPar": "-3",
-      "today": "-1",
-      "thru": "14",
+      "position": "T29",
+      "toPar": "-2",
+      "today": "E",
+      "thru": "F",
       "teeTime": "1:00 PM",
       "status": "Live",
       "madeCut": false,
       "isChampion": false,
-      "scoreToPar": -3
+      "scoreToPar": -2
     },
     {
       "name": "Chris Gotterup",
       "position": "T21",
       "toPar": "-3",
       "today": "E",
-      "thru": "12",
+      "thru": "F",
       "teeTime": "1:33 PM",
       "status": "Live",
       "madeCut": false,
